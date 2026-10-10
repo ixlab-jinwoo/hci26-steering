@@ -10,14 +10,14 @@
  */
 
 import { home } from './home.js';
-import { placeholder } from './placeholder.js';
 import { a1View } from './a1/view.js';
+import { a2View } from './a2/view.js';
 import { mergeView } from './merge/view.js';
 
 const routes = {
 	'': home,
 	a1: a1View,
-	a2: placeholder('Assignment 2: linear vs. circular steering'),
+	a2: a2View,
 	merge: mergeView,
 };
 

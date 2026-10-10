@@ -36,6 +36,28 @@ mean TP. Figures: MT vs. ID, TP vs. ID, velocity profile towards the target over
 The CSV has one row per timed movement, including the velocity profile in 20 time slices (`v01`–`v20`), so the merge
 view can redraw every figure from CSV files alone.
 
+## Assignment 2: linear vs. circular steering
+
+Steering through tunnels (Accot & Zhai 1997): press in the green start zone, keep the button pressed (or the pen on the
+screen) and steer to the finish line; leaving the tunnel or letting go fails the trial, which is then repeated later in
+the block (up to 3 attempts). Both shapes have the same index of difficulty ID = L / W:
+
+- **Linear**: a straight tunnel of length L, left to right or right to left.
+- **Circular**: a full circle of circumference L (radius L / 2π), clockwise or counter-clockwise.
+
+Design: L ∈ {500, 800} px × W ∈ {20, 30, 40} px (ID 12.5–40) × 2 shapes; 12 practice trials, then 2 blocks of 48 trials
+(4 per condition, directions balanced) in random order; about 12 minutes. The session is saved after every trial, so a
+reload continues where it stopped.
+
+Input: mouse or stylus only. Finger touches are ignored; a touchpad has to be ruled out by the student (browsers report
+it as a mouse); a mismatch between the chosen device and the actual pointer type is pointed out once. The window has to
+be at least 960 × 580 CSS pixels.
+
+Analysis per participant: mean MT of completed trials, error rate (failed attempts), throughput ID / MT, per shape the
+fit MT = a + b·ID and IP = 1000/b; speed along the path in 20 pieces (`s01`–`s20`), path length / L and the offset
+towards the centre of the circle. Figures: MT vs. ID, throughput vs. ID, speed profiles per width, error rate, path
+length vs. width; in the merge view also each participant's slope b for both shapes.
+
 ## Merge view
 
 Drop the CSV files of a team or a class. Files are recognised by their `assignment` column; a participant session that
@@ -60,6 +82,7 @@ src/styles.css
 src/main.js           hash router: #/, #/a1, #/a2, #/merge
 src/home.js           start page
 src/a1/               Assignment 1: design, reciprocal pointing/crossing engine, analysis, views
+src/a2/               Assignment 2: design, tunnel stage, analysis, views
 src/merge/            merge view
 src/core/             shared code: tunnel geometry, steering trial engine, statistics,
                       CSV, storage, charts, version
