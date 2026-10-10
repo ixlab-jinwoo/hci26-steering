@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "start": "python3 -m http.server 8000"
+    "start": "node scripts/stamp-version.mjs && python3 -m http.server 8000"
   }
 }

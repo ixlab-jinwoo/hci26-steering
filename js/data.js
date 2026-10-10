@@ -202,6 +202,8 @@ const CSV_COLUMNS = [
 	['path_ratio', (t) => t.pathRatio],
 	['mean_speed', (t) => t.meanSpeed],
 	['timestamp', (t) => t.timestamp],
+	['app_version', (t) => t.appVersion],
+	['app_commit', (t) => t.appCommit],
 ];
 
 function csvField(v) {

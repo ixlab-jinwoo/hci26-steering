@@ -1,0 +1,52 @@
+# Publishes the page to GitHub Pages when a version tag (v1.0.0, …) is
+# pushed (also one created through a GitHub release), or when started by hand from the
+# Actions tab. Pushes to master alone do not change the published page, so
+# a running study is never switched to new code by accident.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source:
+# "GitHub Actions".
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - name: Assemble site
+        run: |
+          mkdir _site
+          cp -r index.html css js vendor _site/
+          node scripts/stamp-version.mjs _site/version.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

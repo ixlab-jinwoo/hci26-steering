@@ -52,18 +52,48 @@ Data is kept in the browser's `localStorage` and can be exported as CSV (one row
 pointer samples `t, x, y, s, d` of every trial). JSON exports can be imported again. Sizes are in CSS pixels; keep the
 browser zoom at 100 %.
 
-## Running
+## Running locally
 
-The page uses ES modules, which browsers do not load from `file://`. Serve the folder with any static web server:
+The page uses ES modules, which browsers do not load from `file://`. Serve the folder with a static web server:
 
 ```sh
-python3 -m http.server 8000   # then open http://localhost:8000
+npm start                     # writes version.json, then serves on http://localhost:8000
+python3 -m http.server 8000   # also works; trials are then recorded with version "unknown"
 ```
 
 Unit tests (Node 18+, no dependencies):
 
 ```sh
 npm test
+```
+
+## Deployment
+
+The published page is built by GitHub Actions and served by GitHub Pages.
+
+- `.github/workflows/test.yml` runs the unit tests on every pull request and every push to `master`.
+- `.github/workflows/deploy.yml` tests and publishes the page when a version tag is pushed (or created with a GitHub
+  release), or when started by hand from the Actions tab. Pushing to `master` alone does not change the published
+  page, so a running study is not switched to new code by accident.
+
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+To publish a new version:
+
+```sh
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Every recorded trial stores the code version (`appVersion`, `appCommit` in JSON; `app_version`, `app_commit` in CSV).
+The deploy workflow writes it to `version.json`; `npm start` does the same locally from `git describe`.
+
+For formal lab sessions, run a fixed release locally, so the study does not depend on the network or on later
+deployments:
+
+```sh
+git checkout v1.1.0
+npm start
 ```
 
 ## Structure
@@ -81,6 +111,8 @@ js/plots/            live and evaluation figures (D3 v7)
 js/main.js           wiring
 vendor/              D3 v7.9.0 (ISC license)
 test/                unit tests (node --test)
+scripts/             version stamp for deployments
+.github/workflows/   tests and GitHub Pages deployment
 ```
 
 ## References

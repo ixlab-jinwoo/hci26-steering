@@ -51,6 +51,9 @@ const app = {
 	busy: false,
 	idMode: 'nominal',
 	focusId: null,
+	// Code version (from version.json, written at deploy time) stored with
+	// every trial so recorded data can be traced back to the code.
+	version: { version: 'unknown', commit: null },
 };
 
 const LIMITS = {
@@ -223,6 +226,8 @@ function finishTrial() {
 		L: app.tunnel.length,
 		ID: app.tunnel.id,
 		timestamp: new Date().toISOString(),
+		appVersion: app.version.version,
+		appCommit: app.version.commit,
 		...summary,
 		samples,
 	});
@@ -757,6 +762,17 @@ window.addEventListener('resize', () => {
 
 // ------------------------------------------------------------------ init
 
+async function loadVersion() {
+	try {
+		const response = await fetch('version.json', { cache: 'no-store' });
+		if (response.ok) app.version = await response.json();
+	} catch {
+		// Served without version.json (e.g. plain `python3 -m http.server`).
+	}
+	const { version, commit } = app.version;
+	$('app-version').textContent = `Version ${version}` + (commit ? ` (${commit.slice(0, 7)})` : '');
+}
+
 const svg = $('test-area');
 svg.addEventListener('pointerdown', onPointerDown);
 svg.addEventListener('pointermove', onPointerMove);
@@ -772,3 +788,4 @@ renderDatasets();
 showSaveState();
 loadTrial();
 scheduleAnalysis(0);
+loadVersion();
