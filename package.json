@@ -1,10 +1,17 @@
 {
-  "name": "steering-law-test",
+  "name": "hci26-steering",
   "private": true,
-  "description": "Interactive steering law test and visualisation",
+  "description": "HCI 2026 in-browser experiments: Fitts law vs. crossing, linear vs. circular steering",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "start": "node scripts/stamp-version.mjs && python3 -m http.server 8000"
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  },
+  "dependencies": {
+    "d3": "7.9.0"
   }
 }

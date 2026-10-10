@@ -11,7 +11,7 @@ import {
 	pointAt,
 	widthAt,
 	bandPolygon,
-} from '../js/geometry.js';
+} from '../src/core/geometry.js';
 
 const close = (actual, expected, tol, msg) =>
 	assert.ok(Math.abs(actual - expected) <= tol, `${msg ?? ''} expected ${expected}, got ${actual}`);

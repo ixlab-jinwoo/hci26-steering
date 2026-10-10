@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { straightTunnel, circularTunnel, taperedTunnel } from '../js/geometry.js';
-import { SteeringTrial } from '../js/trial.js';
+import { straightTunnel, circularTunnel, taperedTunnel } from '../src/core/geometry.js';
+import { SteeringTrial } from '../src/core/steering-trial.js';
 
 const close = (actual, expected, tol) =>
 	assert.ok(Math.abs(actual - expected) <= tol, `expected ${expected}, got ${actual}`);
