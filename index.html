@@ -1,226 +1,484 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
-		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-		<title>Visualising Fitts's Law</title>
-		<script type="text/javascript" src="d3/d3.v2.js"></script>
-		<script type="text/javascript" src="d3/lib/jquery/jquery.min.js"></script>
-	    <script type="text/javascript" src="d3/lib/jquery-ui/jquery-ui.min.js"></script>
-
-		<link href='http://fonts.googleapis.com/css?family=Ovo' rel='stylesheet' type='text/css'>
-		<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700' rel='stylesheet' type='text/css'>
-
-		<link type="text/css" rel="stylesheet" href="reset.css"/>
-		<link type="text/css" rel="stylesheet" href="960_12_col.css"/>
-		<link type="text/css" rel="stylesheet" href="style.css"/>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Steering Law Test</title>
+		<meta
+			name="description"
+			content="An interactive steering law test: steer through straight, circular and tapered tunnels and see movement time, errors, speed and throughput update live."
+		/>
+		<link rel="stylesheet" href="css/style.css" />
+		<script src="vendor/d3.v7.9.0.min.js"></script>
+		<script type="module" src="js/main.js"></script>
 	</head>
 	<body>
-		<!-- fork me on github -->
-		<a href="https://github.com/SimonWallner/uit-fitts-law"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
-
-
-		<div class="container_12">
-			<h1 class="prefix_1 grid_9">An Interactive Visualisation of <strong>Fitts's Law</strong> with JavaScript and <strong>D3</strong></h1>
-			<div class="prefix_1 grid_7">
-				<p>
-					Fitts's Law is one of the cornerstones of user interface research. In 1954, Fitts described the relationship between the target distance, width, and time needed for a target acquisition task. This later became known as <strong>Fitts's law</strong> [Fitts 1954].
+		<main class="wrap">
+			<div class="prose">
+				<h1>An interactive test of the <strong>steering law</strong></h1>
+				<p class="lead">
+					Fitts's law predicts how long it takes to point at a target. Many interactions are not about reaching a
+					point but about following a path: drawing a curve, dragging through a cascading menu, moving a slider
+					handle along its track. For these trajectory-based tasks, Accot and Zhai [1997] derived the
+					<strong>steering law</strong>.
 				</p>
 				<p>
-					This interactive illustration of Fitts's test should serve as an introduction to Fitts' law.  It can also help the reader to visualise details not directly covered by the law and give further insights into motion in 2D target acquisition tasks.
+					This page lets you run a steering test in the browser, either freely or as a structured experiment, and
+					shows the data from several angles as it comes in. It started out as an interactive illustration of
+					Fitts's law; the tapping task has been replaced by steering tasks. <a href="#test">Jump to the test</a>.
+				</p>
+
+				<h2>The steering law</h2>
+				<p>
+					To steer through a tunnel <em>C</em> whose width <em>W</em>(<em>s</em>) may vary along the path, the
+					movement time <em>MT</em> grows linearly with the integral of the inverse width:
+				</p>
+				<math display="block">
+					<mi>MT</mi><mo>=</mo><mi>a</mi><mo>+</mo><mi>b</mi>
+					<mo>·</mo>
+					<msub><mo>∫</mo><mi>C</mi></msub>
+					<mfrac>
+						<mrow><mi>d</mi><mi>s</mi></mrow>
+						<mrow><mi>W</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo></mrow>
+					</mfrac>
+				</math>
+				<p>
+					The integral is the task's <strong>index of difficulty</strong> (ID); <em>a</em> and <em>b</em> are
+					fitted to measured data. This page offers the three tunnels studied in the original work:
+				</p>
+				<table class="formula-table">
+					<tbody>
+						<tr>
+							<td>Straight tunnel, length <em>A</em>, width <em>W</em></td>
+							<td>
+								<math displaystyle="true"><mi>ID</mi><mo>=</mo><mfrac><mi>A</mi><mi>W</mi></mfrac></math>
+							</td>
+						</tr>
+						<tr>
+							<td>Circular tunnel, radius <em>R</em>, one lap</td>
+							<td>
+								<math displaystyle="true"
+									><mi>ID</mi><mo>=</mo
+									><mfrac><mrow><mn>2</mn><mi>π</mi><mi>R</mi></mrow><mi>W</mi></mfrac></math
+								>
+							</td>
+						</tr>
+						<tr>
+							<td>Tapered tunnel, width changing linearly from <em>W</em>₁ to <em>W</em>₂</td>
+							<td>
+								<math displaystyle="true"
+									><mi>ID</mi><mo>=</mo
+									><mfrac
+										><mi>A</mi
+										><mrow><msub><mi>W</mi><mn>1</mn></msub><mo>−</mo><msub><mi>W</mi><mn>2</mn></msub></mrow></mfrac
+									><mi>ln</mi><mo>⁡</mo
+									><mfrac><msub><mi>W</mi><mn>1</mn></msub><msub><mi>W</mi><mn>2</mn></msub></mfrac></math
+								>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<p>
+					The page computes the ID of every tunnel by integrating numerically along its centreline, so all
+					shapes share one code path. Two differences from Fitts's law matter for the analysis. The ID is
+					<em>linear</em> in path length over width, not logarithmic, so it has no unit (not bits) and covers a
+					wide range. And errors happen <em>during</em> the movement, when the pointer leaves the tunnel, not at
+					its end.
+				</p>
+				<p>
+					The steering law follows from a <strong>local law</strong>: at every point, the speed you can sustain
+					is proportional to the local width of the tunnel,
+				</p>
+				<math display="block">
+					<mi>v</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo><mo>=</mo>
+					<mfrac>
+						<mrow><mi>W</mi><mo stretchy="false">(</mo><mi>s</mi><mo stretchy="false">)</mo></mrow>
+						<mi>τ</mi>
+					</mfrac>
+				</math>
+				<p>where <em>τ</em> is a time constant of the person and input device.</p>
+
+				<h2>The test</h2>
+				<p>
+					<strong>Press</strong> inside the green start zone, <strong>hold</strong> the button and
+					<strong>drag</strong> through the tunnel past the black finish line. For the circular tunnel, steer one
+					full lap back to the green line. Timing starts when you cross the start line and stops at the finish
+					line. Be as fast as you can while staying inside the walls.
+				</p>
+				<p>
+					<strong>Free mode</strong> lets you set the tunnel with sliders. Each round has 8 trials in alternating
+					directions, and parameters can be randomised after each round.
+					<strong>Experiment mode</strong> runs a full design: every combination of the sizes you enter, in random
+					order within each shape, with optional practice. Each run is stored in its own data set.
+				</p>
+				<p>
+					With the <strong>strict</strong> error policy, leaving the tunnel ends the trial as an error; in
+					experiment mode it is repeated at the end of its sequence (up to 3 attempts). With the
+					<strong>lenient</strong> policy, exits are only counted, and the trial goes on to the finish line.
 				</p>
 				<p class="note">
-					We recomend a modern browser and fast computer to run the interactive tests. We developed on Safari and Chrome, so support for other modern browsers is likely but not guaranteed.
-				</p>
-
-				<h2>Fitts's Law</h2>
-				<p>
-					For a given target acquisition task, e.g. move the mouse to a certain point in the UI of an application and select it, Fitts's law desribes how the distance from start point to the target and the width of the target influence the index of difficulty (ID) of the task.
-				</p>
-				<p>
-					The law (in the Shannon formulation [MacKenzie and Buxton 1992]) states that
-				<div class="math">
-					<img src="shannon.png" style="width: 160px" alt="Shannon Formulation of the Fitts's law" />
-				</div>
-					where <strong>A</strong> is the task's amplitude or distance, <strong>W</strong> is the target's width, and the resulting <strong>ID</strong> is the aforementioned <strong>Index of Difficulty</strong>.
-				</p>
-				<p>
-					From this formula we can see that the task gets harder, the farther away the target is and the smaller it is. This fits well with the common perception of such tasks. As it turns out, the time it takes to perform such a task is linearly correlated with its ID.
-				</p>
-
-				<h2>The Test</h2>
-				<p>
-					Below you can find an interactive Fitts's test. The test is laid out according to the recommendations found in [Soukoreff and Mackenzie 2004]. It should also follow the ISO standard [ISO 9241-9] which unfortunately was unavailable to us at the time of writing.
-				</p>
-				<p>
-					The test setup allows for multiple data sets to be created (e.g. to compare different input devices or parameters) and the test parameters (<strong>distance</strong> and <strong>width</strong>) can be adjusted. If parameters are set randomly, they will update after each test round, to allow for the continuous insertion of test data for different conditions.
-				</p>
-				<p>
-					Below you can see the test area. Beneath it you can find various plots that update in real time while data is entered. Data is accumulated in the live plots as long as the test parameters remain unchanged.
-
-				<h2>A word of Warning</h2>
-				<p>
-				This test setup is merely for educative and illustrative purposes. This is <strong>not</strong> a controlled experiment, and no definitive truths should be derived from it. It can, however, help in exploring different settings and be a usefull tool for constructing real Fitts's experiments.
-				</p>
-
-			</div>
-
-			<div class="clear"></div>
-
-			<div class="grid_8">
-				<div id="test-area" class="sans"></div>
-				<p class="caption">
-					fig. 1a: Test Area: Try to click the red circle as fast as possible but at the same time try to avoid errors.
-				</p>
-			</div>
-			<div class="grid_4 border sans" style="height: 378px; padding: 10px; width: 278px">
-				<p>
-					<button id="randomizeButton" type="button">Randomize!</button>
-					<input type="checkbox" id="randomizeCheckbox" checked /> randomize after round
-				</p>
-				<p>
-					Distance: <span id="sliderDistanceValue"></span>
-					<div id="sliderDistance"></div>
-				</p>
-
-				<p>
-					Width: <span id="sliderWidthValue"></span>
-					<div id="sliderWidth"></div>
-				</p>
-				<hr />
-				<p>
-					Data Sets: (click to make active)
-					<div id="dataSets"></div>
-					<button id="addDataSetButton" type="button">Add Data Set</button>
-				</p>
-			</div>
-			<div class="clear"></div>
-
-			<div class="grid_3">
-				 <div id="plot-positions" class="sans"></div>
-				<p class="caption">
-					fig. 1b: Deviation form straight path over path distance in px.
+					This is a tool for exploring and setting up studies, not a controlled experiment by itself. Sizes are
+					in CSS pixels, so keep the browser zoom at 100&nbsp;% and use the same screen when you compare data
+					sets. All data stays in your browser (saved automatically) until you export it.
 				</p>
 			</div>
 
-			<div class="grid_3">
-				<div id="plot-velocities" class="sans"></div>
-				<p class="caption">
-					fig. 1c: Movement speed in px/ms over time in ms.
-				</p>
-			</div>
-
-			<div class="grid_3 2ndRow">
-				<div id="plot-hits" class="sans"></div>
-				<p class="caption">
-					fig. 1d: Click position relative to approach direction.
-				</p>
-			</div>
-
-			<div class="grid_3">
-				<div id="plot-scatter" class="sans"></div>
-				<p class="caption">
-					fig. 1e: Time in ms over ID.
-				</p>
-			</div>
-
-
-
-			<div class="clear"></div>
-
-			<div id="data" class="prefix_1 grid_7"></div>
-			<div class="clear"></div>
-
-			<div class="prefix_1 grid_7">
-
-
-
-
-				<h2 style="margin-top: 2em;">Evaluating the Test Data</h2>
-				<p>The plots below show different evaluations of the test data. These plots update automatically after an inactivity of 2 seconds. Figure 2 shows a scatter plot of time over effective ID. The effective Index of Difficulty (<strong>IDe</strong>) is computed as follows:
-
-				<div class="math">
-					<img src="IDe.png" alt="IDe = log2(De/We = + 1)" style="width: 160px;"/>
-				</div>
-				where <strong>De</strong> is the mean distance from start to end point and the effective width <strong>We</strong> is defined as:
-				<div class="math">
-					<img src="We.png" alt="We = 4.133 * sigma" style="width: 120px;" />
-				</div>
-				where <strong>σ</strong> is the standard deviation of the hit points on the target. We are computing <strong>σ</strong> in the target direction and perpendicular to it, and then use the 'smaller-of' heuristic (cf. [MacKenzie and Buxton 1992, Soukoreff and Mackenzie 2004]).
-				</p>
-
-				<div id="scatterEffective" class="sans"></div>
-				<p class="caption">
-					fig. 2: Time in ms over effective ID. Only parameter combinations (distance and width) with at least 3 samples are shown.
-				</p>
-
-				<div id="throughput" class="sans"></div>
-				<p class="caption">
-					fig. 3: Histogram of effective throughput. Individual histograms for each data set are scaled to their respective maximum frequency.
-				</p>
-
-
-				<p>
-					Figure 3 shows a histogram of the throughput for each dataset. Throughput is computed as <strong>IDe/movement time</strong> and therefore has the unit <strong>bits/second</strong>. Throughput and its distribution can be one of the indicators of a device's performance. To make an encompassing assessment further metrics have to be used (e.g. error rate, and overall user comfort and user satisfaction).
-				</p>
-
-
-				<h2>Analysing Movement Path and Speed</h2>
+			<div class="test-layout" id="test">
+				<div class="stage">
+					<div class="status-bar" aria-live="polite">
+						<span id="status-main"></span>
+						<span id="status-detail"></span>
+					</div>
+					<div class="stage-scroll">
+						<svg id="test-area" aria-label="Test area"></svg>
+					</div>
+					<p class="caption"><strong>fig. 1a</strong> Test area.</p>
 				</div>
 
-				<div class="grid_7 prefix_1">
-					<div id="positionEffective" class="sans"></div>
-					<p class="caption">
-						fig. 4: Deviation form straight path over path distance in px.
-					</p>
+				<aside class="panel">
+					<div class="tabs" role="tablist">
+						<button type="button" role="tab" id="tab-free" aria-selected="true" aria-controls="free-panel">
+							Free mode
+						</button>
+						<button type="button" role="tab" id="tab-experiment" aria-selected="false" aria-controls="experiment-panel">
+							Experiment mode
+						</button>
+					</div>
 
-					<div id="speedEffective" class="sans"></div>
-					<p class="caption">
-						fig. 5: Movement speed in px/ms over time in ms.
-					</p>
+					<section id="free-panel" role="tabpanel" aria-labelledby="tab-free">
+						<h3>Tunnel</h3>
+						<div class="field segmented" role="radiogroup" aria-label="Tunnel shape">
+							<label><input type="radio" name="shape" value="straight" checked /> Straight</label>
+							<label><input type="radio" name="shape" value="circular" /> Circular</label>
+							<label><input type="radio" name="shape" value="tapered" /> Tapered</label>
+						</div>
+						<div class="field" data-shapes="straight tapered">
+							<label for="p-length">Length A <output id="o-length"></output></label>
+							<input type="range" id="p-length" min="100" max="600" step="10" value="400" />
+						</div>
+						<div class="field" data-shapes="circular">
+							<label for="p-radius">Radius R <output id="o-radius"></output></label>
+							<input type="range" id="p-radius" min="60" max="300" step="10" value="150" />
+						</div>
+						<div class="field" data-shapes="straight circular">
+							<label for="p-width">Width W <output id="o-width"></output></label>
+							<input type="range" id="p-width" min="10" max="120" step="1" value="30" />
+						</div>
+						<div class="field" data-shapes="tapered">
+							<label for="p-start-width">Start width W₁ <output id="o-start-width"></output></label>
+							<input type="range" id="p-start-width" min="10" max="120" step="1" value="80" />
+						</div>
+						<div class="field" data-shapes="tapered">
+							<label for="p-end-width">End width W₂ <output id="o-end-width"></output></label>
+							<input type="range" id="p-end-width" min="10" max="120" step="1" value="20" />
+						</div>
+						<p class="readout">ID = <strong id="o-id"></strong> · path length <strong id="o-path"></strong> px</p>
+						<label class="check"><input type="checkbox" id="randomize" /> Randomise after each round of 8 trials</label>
+						<button type="button" class="secondary" id="randomize-now">Randomise now</button>
+					</section>
+
+					<section id="experiment-panel" role="tabpanel" aria-labelledby="tab-experiment" hidden>
+						<form id="experiment-setup">
+							<div class="inline-pair">
+								<div class="field">
+									<label for="x-participant">Participant</label>
+									<input type="text" id="x-participant" value="P01" />
+								</div>
+								<div class="field">
+									<label for="x-device">Device / condition</label>
+									<input type="text" id="x-device" value="mouse" />
+								</div>
+							</div>
+
+							<fieldset>
+								<legend><label class="check"><input type="checkbox" id="x-straight-on" checked /> Straight</label></legend>
+								<div class="inline">
+									<div class="field">
+										<label for="x-straight-lengths">Lengths A</label>
+										<input type="text" id="x-straight-lengths" />
+									</div>
+									<div class="field">
+										<label for="x-straight-widths">Widths W</label>
+										<input type="text" id="x-straight-widths" />
+									</div>
+								</div>
+								<div class="field">
+									<label for="x-straight-trials">Trials per condition <span>(cycles 8 directions)</span></label>
+									<input type="number" id="x-straight-trials" min="1" max="32" />
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<legend><label class="check"><input type="checkbox" id="x-circular-on" checked /> Circular</label></legend>
+								<div class="inline">
+									<div class="field">
+										<label for="x-circular-radii">Radii R</label>
+										<input type="text" id="x-circular-radii" />
+									</div>
+									<div class="field">
+										<label for="x-circular-widths">Widths W</label>
+										<input type="text" id="x-circular-widths" />
+									</div>
+								</div>
+								<div class="field">
+									<label for="x-circular-trials">Trials per condition <span>(alternates CW/CCW)</span></label>
+									<input type="number" id="x-circular-trials" min="1" max="32" />
+								</div>
+							</fieldset>
+
+							<fieldset>
+								<legend><label class="check"><input type="checkbox" id="x-tapered-on" checked /> Tapered</label></legend>
+								<div class="inline">
+									<div class="field">
+										<label for="x-tapered-length">Length A</label>
+										<input type="text" id="x-tapered-length" />
+									</div>
+									<div class="field">
+										<label for="x-tapered-pairs">Widths W₁&gt;W₂</label>
+										<input type="text" id="x-tapered-pairs" />
+									</div>
+								</div>
+								<div class="field">
+									<label for="x-tapered-trials">Trials per condition <span>(cycles 8 directions)</span></label>
+									<input type="number" id="x-tapered-trials" min="1" max="32" />
+								</div>
+							</fieldset>
+
+							<label class="check"><input type="checkbox" id="x-practice" checked /> Practice sequence before each shape</label>
+							<label class="check"><input type="checkbox" id="x-shuffle" /> Randomise the order of shapes</label>
+							<p class="readout" id="x-summary"></p>
+							<p class="form-error" id="x-error" role="alert"></p>
+							<button type="submit" class="primary" id="x-start">Start experiment</button>
+						</form>
+
+						<div id="experiment-run" hidden>
+							<p class="readout" id="x-run-label"></p>
+							<div class="progress"><div id="x-progress"></div></div>
+							<p class="readout" id="x-progress-text"></p>
+							<button type="button" class="secondary" id="x-abort">Abort experiment</button>
+						</div>
+					</section>
+
+					<section>
+						<h3>Error policy</h3>
+						<div class="field segmented" role="radiogroup" aria-label="Error policy">
+							<label><input type="radio" name="policy" value="strict" checked /> Strict</label>
+							<label><input type="radio" name="policy" value="lenient" /> Lenient</label>
+						</div>
+						<p class="caption" id="policy-help"></p>
+					</section>
+
+					<section>
+						<h3>Data sets</h3>
+						<p class="caption">New trials go to the selected data set.</p>
+						<ul class="dataset-list" id="dataset-list"></ul>
+						<form class="add-dataset" id="add-dataset">
+							<input type="text" id="new-dataset" placeholder="New data set, e.g. touchpad" aria-label="New data set name" />
+							<button type="submit" class="secondary">Add</button>
+						</form>
+						<div class="button-row">
+							<button type="button" class="secondary" id="export-csv">Export CSV</button>
+							<button type="button" class="secondary" id="export-json">Export JSON</button>
+							<button type="button" class="secondary" id="import-json">Import JSON</button>
+							<button type="button" class="secondary" id="clear-data">Clear all</button>
+							<input type="file" id="import-file" accept="application/json,.json" hidden />
+						</div>
+						<p class="save-warning" id="save-warning" hidden></p>
+					</section>
+				</aside>
+			</div>
+
+			<div class="live-grid">
+				<figure class="card" id="live-trajectory">
+					<h3>Path inside the tunnel</h3>
+					<p class="chart-sub"></p>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 1b</strong> Pointer path in tunnel coordinates: distance along the centreline and
+						lateral offset. The shaded band is the tunnel.
+					</figcaption>
+				</figure>
+				<figure class="card" id="live-speed">
+					<h3>Speed along the tunnel</h3>
+					<p class="chart-sub"></p>
+					<div class="chart-box"></div>
+					<figcaption class="caption"><strong>fig. 1c</strong> Speed along the centreline in px/ms.</figcaption>
+				</figure>
+				<figure class="card" id="live-deviation">
+					<h3>Lateral offset</h3>
+					<p class="chart-sub"></p>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 1d</strong> Distribution of the offset relative to the half-width; ±1 are the walls.
+					</figcaption>
+				</figure>
+				<figure class="card" id="live-scatter">
+					<h3>Time over ID</h3>
+					<p class="chart-sub"></p>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 1e</strong> MT of every completed trial in the selected data set; hollow dots left the
+						tunnel (lenient policy).
+					</figcaption>
+				</figure>
+			</div>
+			<p class="caption">
+				Figures 1b–1d show the latest trials of the current tunnel and reset when its size changes.
+			</p>
+
+			<div class="prose">
+				<h2>Evaluating the test data</h2>
+				<p>
+					The figures below summarise all data sets and update a moment after each trial. Practice trials are
+					left out. Movement times use completed trials; within each condition, times further than 3 standard
+					deviations from the mean are dropped.
+				</p>
+			</div>
+
+			<div class="filter-row">
+				<div class="segmented" role="radiogroup" aria-label="ID in figure 2">
+					<label><input type="radio" name="id-mode" value="nominal" checked /> Nominal ID</label>
+					<label><input type="radio" name="id-mode" value="effective" /> Effective ID</label>
 				</div>
+				<label>Data set for fig. 3 and 6 <select id="focus-dataset"></select></label>
+			</div>
 
-				<div class="prefix_1 grid_7">
+			<div class="figure-grid">
+				<figure class="card" id="fig-mt-id">
+					<h3>Movement time over index of difficulty</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 2</strong> Mean MT per condition with the least-squares fit MT = a + b · ID for each data
+						set.
+					</figcaption>
+				</figure>
+				<figure class="card" id="fig-shapes">
+					<h3>One law for all shapes?</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 3</strong> Mean MT per condition of one data set, by tunnel shape, with a single fit
+						across all shapes.
+					</figcaption>
+				</figure>
+
+				<figure class="card wide">
+					<h3>Model fit per data set</h3>
+					<div class="table-scroll" id="model-table"></div>
+					<figcaption class="caption">
+						<strong>table 1</strong> a and b: intercept and slope of the steering law fit over condition means.
+						IP = 1/b, the index of performance. R² (IDe): fit against the effective ID. TP: mean throughput IDe /
+						MT. τ: time constant of the local law (fig. 5).
+					</figcaption>
+				</figure>
+
+				<div class="grid-note prose">
 					<p>
-						These two figures illustrate the mouse's movement path and speed during the test. In Figure 4 All data is anchored in the start position of each trial. The positional movement data is projected onto the target vector, to make comparisons over all approach directions easy.
+						Fig. 2 is the steering law itself: if it holds, the dots of a data set lie on a straight line. Switch
+						to the <strong>effective ID</strong> to account for how much of the tunnel people actually used.
+						Following Kulikov, MacKenzie and Stuerzlinger [2005], the effective width is We = 4.133 · σ, where σ is
+						the standard deviation of the lateral offset. For tapered tunnels the offset is first divided by the
+						local width, so that We scales with the tunnel along its length. Fig. 3 checks the core claim of the
+						integral form: straight, circular and tapered tunnels with the same ID should take the same time.
 					</p>
-					<p>
-						Figure 5 finally shows the movement speed in pixel per ms over the movement time. Analysing the user's movements beyond Fitts's law can yield additional insights into different qualities of various input devices. For the sake of completeness and contrast we would like to refer to [Bootsma et al. 2004].
-					</p>
+				</div>
 
+				<figure class="card" id="fig-errors">
+					<h3>Error rate over index of difficulty</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 4</strong> Share of trials per condition that failed or left the tunnel.
+					</figcaption>
+				</figure>
+				<figure class="card" id="fig-local-law">
+					<h3>Local law: speed over tunnel width</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 5</strong> Mean speed by local width (5 px bins, middle 80 % of each trial) and the fit
+						v = W / τ through the origin.
+					</figcaption>
+				</figure>
+
+				<figure class="card wide" id="fig-profile">
+					<h3>Speed profile along the tunnel</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 6</strong> Mean speed (± 1 SD band) over normalised distance s / L, for one data set, by
+						tunnel width. In tapered tunnels, narrowing and widening should show opposite slopes.
+					</figcaption>
+				</figure>
+
+				<div class="grid-note prose">
+					<p>
+						A pointing movement has a bell-shaped speed profile: accelerate, then brake for the target. Steering
+						instead settles on a plateau whose height depends on the width (fig. 6), and that dependence is what
+						fig. 5 measures directly. Fig. 7 compares the width people used with the width they had. Points below
+						the diagonal mean the walls were avoided more than necessary.
+					</p>
+				</div>
+
+				<figure class="card" id="fig-widths">
+					<h3>Effective vs. nominal width</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 7</strong> Effective width We over nominal width per condition. For tapered and circular
+						tunnels both are the equivalent constant widths L / ID and L / IDe.
+					</figcaption>
+				</figure>
+				<figure class="card" id="fig-throughput">
+					<h3>Throughput</h3>
+					<div class="legend"></div>
+					<div class="chart-box"></div>
+					<figcaption class="caption">
+						<strong>fig. 8</strong> Distribution of per-trial throughput IDe / MT, as a share of each data set's
+						trials.
+					</figcaption>
+				</figure>
+			</div>
+
+			<div class="prose references">
 				<h2>References</h2>
 				<p>
-					<strong>Fitts, P. M. (1954)</strong>. The information capacity of the human motor system in controlling the amplitude of movement. Journal of Experimental Psychology, 47(6), 381-391. doi:10.1037/h0055392
+					<strong>Accot, J., &amp; Zhai, S. (1997).</strong> Beyond Fitts' law: models for trajectory-based HCI
+					tasks. Proceedings of CHI '97. ACM.
 				</p>
 				<p>
-					<strong>MacKenzie, I. S., & Buxton, W. (1992)</strong>. Extending Fitts's law to two-dimensional tasks. Proceedings of the SIGCHI conference on Human factors in computing systems CHI 92, p, 219-226. ACM Press. doi:10.1145/142750.142794
+					<strong>Accot, J., &amp; Zhai, S. (1999).</strong> Performance evaluation of input devices in
+					trajectory-based tasks: an application of the steering law. Proceedings of CHI '99. ACM.
 				</p>
 				<p>
-					<strong>ISO. (2000)</strong>. Ergonomic requirements for office work with visual display terminals (VDTs) - Requirements for non-keyboard input devices. ISO 92419. International Organization of Standardization.
+					<strong>Accot, J., &amp; Zhai, S. (2001).</strong> Scale effects in steering law tasks. Proceedings of CHI
+					'01. ACM.
 				</p>
 				<p>
-					<strong>Soukoreff, R., & Mackenzie, I. (2004)</strong>. Towards a standard for pointing device evaluation, perspectives on 27 years of Fitts's law research in HCI. International Journal of Human-Computer Studies, 61(6), 751-789. Elsevier. doi:10.1016/j.ijhcs.2004.09.001
+					<strong>Kulikov, S., MacKenzie, I. S., &amp; Stuerzlinger, W. (2005).</strong> Measuring the effective
+					parameters of steering motions. CHI '05 Extended Abstracts. ACM.
 				</p>
 				<p>
-					<strong>Bootsma, R. J., Fernandez, L., & Mottet, D. (2004)</strong>. Behind Fitts's law: kinematic patterns in goal-directed movements. International Journal of Human-Computer Studies, 61(6), 811-821. doi:10.1016/j.ijhcs.2004.09.004
-					</p>
-
-				<h2>Feedback</h2>
+					<strong>Yamanaka, S., &amp; Miyashita, H. (2016).</strong> Modeling the steering time difference between
+					narrowing and widening tunnels. Proceedings of CHI '16. ACM.
+				</p>
 				<p>
-					There is quite some room for improvement and we'd love to hear your feedback and comments. You can address them to Simon via <a href="mailto:me@simonwallner.at">email</a>.
+					<strong>Fitts, P. M. (1954).</strong> The information capacity of the human motor system in controlling
+					the amplitude of movement. Journal of Experimental Psychology, 47(6), 381–391.
 				</p>
 
 				<h2>Acknowledgements</h2>
 				<p>
-					This interactive experiment was created as part of an assignment for the <strong>User Interface Technologies</strong> course at the <strong>University of Copenhagen</strong> in spring 2012. Group Members: Simon Wallner, Otilia Danet, Trine Eilersen, and Jesper Tved.
+					Based on the interactive visualisation of Fitts's law created by Simon Wallner, Otilia Danet, Trine
+					Eilersen and Jesper Tved for the User Interface Technologies course at the University of Copenhagen in
+					2012.
 				</p>
 				<h2>License</h2>
 				<p>
-					This project is licensed under the permissive <strong>MIT license</strong>, The full source is available on <a href="https://github.com/SimonWallner/uit-fitts-law">GitHub</a>
+					MIT license. D3 is distributed under its own ISC license (see <code>vendor/LICENSE-d3</code>).
 				</p>
 			</div>
-
-			<script type="text/javascript" src="fitts-law.js"></script>
-
-		</div> <!-- container12 end -->
+		</main>
 	</body>
 </html>
