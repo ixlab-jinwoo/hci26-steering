@@ -1,0 +1,10 @@
+{
+  "name": "steering-law-test",
+  "private": true,
+  "description": "Interactive steering law test and visualisation",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "node scripts/stamp-version.mjs && python3 -m http.server 8000"
+  }
+}
