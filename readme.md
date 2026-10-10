@@ -17,6 +17,32 @@ uploaded; no server or network is needed.
 - **Online**: the same file is published on GitHub Pages at https://ixlab-jinwoo.github.io/hci26-steering/. Tablets
   (iPad, Android) cannot run a downloaded HTML file; they use this address instead.
 
+## Assignment 1: Fitts' law vs. crossing
+
+A 1D reciprocal task (as in Fitts 1954) with two techniques at the same index of difficulty ID = log₂(A/W + 1):
+
+- **Pointing**: click inside a bar of width W (along the movement).
+- **Crossing**: sweep through a goal segment of length W (across the movement) without clicking, as in Accot & Zhai
+  (2002).
+
+Design: A ∈ {240, 480} px × W ∈ {15, 30, 60} px (ID 2.3–5.0 bits) × 2 techniques = 12 sequences in random order, after
+one practice sequence per technique. Each sequence has 10 timed movements; the first activation only starts the clock.
+Misses are counted and the sequence goes on. Mouse, touchpad and pen are allowed; the device is recorded.
+
+Analysis per participant and condition (ISO 9241-9, Soukoreff & MacKenzie 2004): mean MT, effective width We = 4.133 ×
+SD of the activation points, IDe = log₂(Ae/We + 1), throughput TP = IDe / MT; per technique the fit MT = a + b·ID and the
+mean TP. Figures: MT vs. ID, TP vs. ID, velocity profile towards the target over normalised time, error rate.
+
+The CSV has one row per timed movement, including the velocity profile in 20 time slices (`v01`–`v20`), so the merge
+view can redraw every figure from CSV files alone.
+
+## Merge view
+
+Drop the CSV files of a team or a class. Files are recognised by their `assignment` column; a participant session that
+is loaded twice is skipped, and mixed app versions are flagged. Each participant is analysed on their own first; tables
+and figures show the mean over participants with 95 % confidence intervals (Student t), plus paired comparisons
+between the two conditions. The merged rows and a one-row-per-participant summary can be downloaded as CSV.
+
 ## Development
 
 ```sh
@@ -33,6 +59,8 @@ src/index.html        page template (CSS and JS are inlined by the build)
 src/styles.css
 src/main.js           hash router: #/, #/a1, #/a2, #/merge
 src/home.js           start page
+src/a1/               Assignment 1: design, reciprocal pointing/crossing engine, analysis, views
+src/merge/            merge view
 src/core/             shared code: tunnel geometry, steering trial engine, statistics,
                       CSV, storage, charts, version
 scripts/build.mjs     esbuild bundle → single HTML file

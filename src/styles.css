@@ -100,6 +100,10 @@
 	box-sizing: border-box;
 }
 
+[hidden] {
+	display: none !important;
+}
+
 body {
 	margin: 0;
 	background: var(--page);
@@ -327,6 +331,11 @@ button {
 	border: 1px solid var(--axis);
 	background: var(--surface);
 	color: var(--ink);
+}
+
+a.btn {
+	display: inline-block;
+	text-decoration: none;
 }
 
 .btn.primary {
@@ -746,4 +755,62 @@ table.data td:first-child {
 	width: 12px;
 	height: 2px;
 	border-radius: 1px;
+}
+
+/* ------------------------------------------------------------------ assignment 1 */
+
+.a1-bar {
+	fill: var(--wash);
+	stroke: var(--axis);
+	stroke-width: 1;
+}
+
+.a1-target.active .a1-bar {
+	fill: var(--tech);
+	fill-opacity: 0.85;
+	stroke: var(--tech);
+}
+
+.a1-goal {
+	stroke: var(--axis);
+	stroke-width: 6;
+}
+
+.a1-goal-end {
+	stroke: var(--axis);
+	stroke-width: 2;
+}
+
+.a1-target.active .a1-goal,
+.a1-target.active .a1-goal-end {
+	stroke: var(--tech);
+}
+
+.a1-target.miss .a1-bar {
+	fill: var(--critical);
+	stroke: var(--critical);
+}
+
+.a1-target.miss .a1-goal,
+.a1-target.miss .a1-goal-end {
+	stroke: var(--critical);
+}
+
+.a1-start-label {
+	fill: var(--ink-2);
+	font:
+		600 13px system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+	text-anchor: middle;
+}
+
+.technique-tag {
+	display: inline-block;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	padding: 2px 10px;
+	border-radius: 999px;
+	color: #fff;
 }

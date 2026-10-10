@@ -48,3 +48,22 @@ export function slug(text) {
 export function dateStamp() {
 	return new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 }
+
+/** Call fn when the window width changes (debounced). Returns a remover. */
+export function onResize(fn, delay = 200) {
+	let timer = null;
+	let width = window.innerWidth;
+	const handler = () => {
+		clearTimeout(timer);
+		timer = setTimeout(() => {
+			if (window.innerWidth === width) return;
+			width = window.innerWidth;
+			fn();
+		}, delay);
+	};
+	window.addEventListener('resize', handler);
+	return () => {
+		clearTimeout(timer);
+		window.removeEventListener('resize', handler);
+	};
+}
