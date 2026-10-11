@@ -92,16 +92,14 @@ test/                 unit tests
 
 ## Releasing
 
-Pushing a version tag publishes the file to GitHub Pages and attaches it to the GitHub release of that tag:
+Publish a release on GitHub (**Releases → Draft a new release**, any new tag name such as `v2.0.0` or `A2-1.0`). The
+Deploy workflow then builds the file from that tag, attaches `hci26-steering.html` to the release and publishes the same
+file on GitHub Pages; the tag name is shown on the start page as the version. Pushes to master alone change nothing that
+students see. To publish an existing release on GitHub Pages again, run the Deploy workflow by hand from the Actions tab
+(with its tag, or empty for the latest release).
 
-```sh
-git tag v2.0.0
-git push origin v2.0.0
-```
-
-A release created on GitHub with a new `v…` tag does the same. One-time setup: **Settings → Pages → Build and
-deployment → Source: GitHub Actions**. Every exported record contains the version, so data can be traced back to the
-code that produced it.
+One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Every exported record contains
+the version, so data can be traced back to the code that produced it.
 
 # Contributors
 
