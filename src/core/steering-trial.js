@@ -5,9 +5,12 @@
  *   steering ──cross finish line──▶ done
  *   steering ──leave tunnel (strict) / release button──▶ failed
  *
- * Input is drag based: the button has to be held from the start zone to the
- * finish line. Timing starts and stops when the pointer crosses the start
- * and finish lines; crossing times are interpolated between samples.
+ * With `hold` (the default) input is drag based: the button has to be held
+ * from the start zone to the finish line. Without it (touchpads), a press
+ * in the start zone only arms the trial; the pointer then steers without a
+ * button and releases are ignored. Timing starts and stops when the pointer
+ * crosses the start and finish lines; crossing times are interpolated
+ * between samples.
  *
  * Error policies:
  *   strict   leaving the tunnel ends the trial as an error.
@@ -23,10 +26,12 @@ export class SteeringTrial {
 	/**
 	 * @param minZoneWidth  open tunnels only: the start zone is at least this
 	 *     wide across the tunnel (the start line itself keeps the tunnel width)
+	 * @param hold  the button has to be held while steering
 	 */
-	constructor(tunnel, { policy = 'strict', startZone = START_ZONE, minZoneWidth = 0 } = {}) {
+	constructor(tunnel, { policy = 'strict', startZone = START_ZONE, minZoneWidth = 0, hold = true } = {}) {
 		this.tunnel = tunnel;
 		this.policy = policy;
+		this.hold = hold;
 		this.startZone = startZone;
 		this.minZoneWidth = tunnel.closed ? 0 : minZoneWidth;
 		this.state = 'idle';
@@ -63,7 +68,7 @@ export class SteeringTrial {
 	}
 
 	/**
-	 * Pointer moved (with the button held).
+	 * Pointer moved (with the button held, unless without `hold`).
 	 * Returns 'start', 'invalid-start', 'exit', 'reenter', 'complete', 'fail' or null.
 	 */
 	move(x, y, t) {
@@ -74,8 +79,12 @@ export class SteeringTrial {
 		return this.state === 'ready' ? this.checkStart(prev, cur) : this.checkSteering(prev, cur);
 	}
 
-	/** Pointer released. Returns 'cancel' (before the start line), 'fail' or null. */
+	/**
+	 * Pointer released. Returns 'cancel' (before the start line), 'fail' or
+	 * null; always null without `hold`.
+	 */
 	release(x, y, t) {
+		if (!this.hold) return null;
 		if (this.state === 'ready') {
 			this.state = 'idle';
 			this.reset();
