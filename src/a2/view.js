@@ -6,10 +6,15 @@
  *
  * The page shows the results of all participants on this laptop. Each
  * participant's data can be downloaded as a CSV file; the merge view
- * (#/a2/merge) combines files from several laptops. Mouse or stylus only: finger touches are
- * ignored, and a mismatch between the chosen device and the actual input is
- * pointed out once. A running session is saved after every trial, so a
- * reload can continue it.
+ * (#/a2/merge) combines files from several laptops.
+ *
+ * Mouse, touchpad or stylus; finger touches are ignored. With a mouse or a
+ * stylus the button (or the pen) is held while steering; with a touchpad a
+ * click in the start zone arms the trial and the pointer then steers
+ * without a button, so lifting the finger to reposition it is allowed. A
+ * mismatch between the chosen device and the actual input is pointed out
+ * once. A running session is saved after every trial, so a reload can
+ * continue it.
  */
 
 import { h, download, slug, dateStamp, onResize } from '../core/dom.js';
@@ -55,8 +60,10 @@ const NEXT_DELAY = 500;
 const MIN_W = STAGE_W + 40;
 const MIN_H = STAGE_H + 220;
 
-const DEVICE_LABEL = { mouse: 'a mouse', stylus: 'a stylus' };
-const POINTER_DEVICE = { mouse: 'mouse', pen: 'stylus' };
+const DEVICE_LABEL = { mouse: 'a mouse', touchpad: 'a touchpad', stylus: 'a stylus' };
+/** The pointer type each device reports (browsers report touchpads as a mouse). */
+const POINTER_TYPE = { mouse: 'mouse', touchpad: 'mouse', stylus: 'pen' };
+const POINTER_LABEL = { mouse: 'a mouse or touchpad', pen: 'a stylus' };
 
 /** The fields of a session kept in the participant list. */
 const infoOf = (session) => ({
@@ -257,6 +264,7 @@ export function a2View(root) {
 		const participant = h('input', { type: 'text', id: 'a2-participant', autocomplete: 'off' });
 		const device = choices('a2-device', [
 			{ value: 'mouse', label: 'Mouse' },
+			{ value: 'touchpad', label: 'Touchpad' },
 			{ value: 'stylus', label: 'Stylus (pen on a tablet or touchscreen)' },
 		]);
 		const hand = choices('a2-hand', [
@@ -298,7 +306,7 @@ export function a2View(root) {
 							: !device.value
 								? 'Choose the input device.'
 								: device.value === 'mouse' && !noTouchpad.checked
-									? 'This assignment needs an external mouse or a stylus. Touchpads are not allowed.'
+									? 'Confirm that an external mouse is used. For the touchpad, choose Touchpad.'
 									: !hand.value
 										? 'Choose the hand the participant steers with.'
 										: !checkSize()
@@ -366,7 +374,14 @@ export function a2View(root) {
 						h(
 							'li',
 							{},
-							'Be as fast as you can without touching the walls. Leaving the tunnel or letting go fails the trial; it is repeated later.',
+							h('strong', {}, 'With a touchpad: '),
+							'click (or tap) once in the green zone, then steer without holding the button. ' +
+								'Lifting the finger to move it again is allowed; the clock keeps running.',
+						),
+						h(
+							'li',
+							{},
+							'Be as fast as you can without touching the walls. Leaving the tunnel, or letting go with a mouse or a stylus, fails the trial; it is repeated later.',
 						),
 						h(
 							'li',
@@ -380,7 +395,11 @@ export function a2View(root) {
 							`${PRACTICE.length * SHAPES.length} practice trials, then ${trials} trials in random order: about 4 minutes. ` +
 								'If you stop, open the file again in the same browser to continue.',
 						),
-						h('li', {}, 'Use a mouse or a stylus. Touchpads and fingers are not allowed: touches are ignored.'),
+						h(
+							'li',
+							{},
+							'Use a mouse, a touchpad or a stylus, the same for the whole test. Fingers on a touchscreen are not allowed: touches are ignored.',
+						),
 					),
 				),
 				sizeNote,
@@ -395,6 +414,8 @@ export function a2View(root) {
 	// ------------------------------------------------------------ run
 
 	function runScreen(session) {
+		// Touchpads steer without holding the button (see the top of this file).
+		const hover = session.device === 'touchpad';
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('class', 'stage');
 		svg.setAttribute('aria-label', 'Test area');
@@ -493,13 +514,17 @@ export function a2View(root) {
 			updateProgress();
 			spec = block().queue[session.index].spec;
 			const tunnel = makeTunnel(spec, STAGE_W / 2, STAGE_H / 2);
-			trial = new SteeringTrial(tunnel, { policy: 'strict', minZoneWidth: MIN_ZONE });
+			trial = new SteeringTrial(tunnel, { policy: 'strict', minZoneWidth: MIN_ZONE, hold: !hover });
 			stage.show(tunnel);
 			cue.replaceChildren(
 				h('span', { class: 'technique-tag', style: { background: SHAPE_COLOR[spec.shape] } }, SHAPE_LABEL[spec.shape]),
 				`  L = ${spec.L} px · W = ${spec.W} px · ID = ${fmt.one(spec.ID)}`,
 			);
-			setStatus('Press in the green zone and steer through the tunnel.');
+			setStatus(
+				hover
+					? 'Click in the green zone, then steer through the tunnel without holding the button.'
+					: 'Press in the green zone and steer through the tunnel.',
+			);
 		}
 
 		function toStage(e) {
@@ -510,8 +535,9 @@ export function a2View(root) {
 		}
 
 		function deviceMismatch(pointerType) {
-			const actual = POINTER_DEVICE[pointerType];
-			if (!actual || actual === session.device || session.mismatchNoted) return false;
+			if (!POINTER_LABEL[pointerType] || pointerType === POINTER_TYPE[session.device] || session.mismatchNoted) {
+				return false;
+			}
 			session.mismatchNoted = true;
 			saveSession(NAME, session);
 			showOverlay(
@@ -519,7 +545,7 @@ export function a2View(root) {
 				h(
 					'p',
 					{},
-					`You chose ${DEVICE_LABEL[session.device]}, but this input comes from ${DEVICE_LABEL[actual]}. ` +
+					`You chose ${DEVICE_LABEL[session.device]}, but this input comes from ${POINTER_LABEL[pointerType]}. ` +
 						'If you switched devices, start again and choose the one you use.',
 				),
 				h(
@@ -555,19 +581,21 @@ export function a2View(root) {
 		function onDown(e) {
 			if (!trial || !overlay.hidden || pending) return;
 			if (e.pointerType === 'touch') {
-				setStatus('Use a mouse or a stylus. Touches are ignored.', 'bad');
+				setStatus('Use a mouse, a touchpad or a stylus. Touches are ignored.', 'bad');
 				return;
 			}
 			if (e.button !== 0) return;
 			e.preventDefault();
+			// Without hold, clicks after arming (e.g. tap-to-click) are ignored.
+			if (trial.state !== 'idle') return;
 			if (deviceMismatch(e.pointerType)) return;
 			const p = toStage(e);
 			if (trial.press(p.x, p.y, e.timeStamp) === 'ready') {
-				svg.setPointerCapture(e.pointerId);
+				if (!hover) svg.setPointerCapture(e.pointerId);
 				trial.pointerType = e.pointerType;
 				stage.setArmed(true);
 				stage.startTrace(p.x, p.y);
-				setStatus('Steer!');
+				setStatus(hover ? 'Steer! No need to hold the button.' : 'Steer!');
 			} else {
 				setStatus('Press inside the green start zone.', 'bad');
 			}
@@ -701,7 +729,9 @@ export function a2View(root) {
 
 		const noMenu = (e) => e.preventDefault();
 		svg.addEventListener('pointerdown', onDown);
-		svg.addEventListener('pointermove', onMove);
+		// Moves are taken from the whole window: without a held button there is
+		// no pointer capture, and leaving the stage must still end the trial.
+		window.addEventListener('pointermove', onMove);
 		svg.addEventListener('pointerup', onUp);
 		svg.addEventListener('pointercancel', onUp);
 		run.addEventListener('contextmenu', noMenu);
@@ -710,6 +740,7 @@ export function a2View(root) {
 
 		return () => {
 			clearTimeout(pending);
+			window.removeEventListener('pointermove', onMove);
 			window.removeEventListener('keydown', onKey);
 		};
 	}

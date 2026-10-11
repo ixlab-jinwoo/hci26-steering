@@ -96,6 +96,27 @@ test('releasing before the start line cancels without a result', () => {
 	assert.equal(trial.result(), null);
 });
 
+test('without hold (touchpad), a press only arms the trial and releases are ignored', () => {
+	const trial = new SteeringTrial(tunnel(), { hold: false });
+	assert.equal(trial.press(80, 200, 0), 'ready');
+	assert.equal(trial.release(80, 200, 5), null, 'release before the start line');
+	assert.equal(trial.state, 'ready');
+	let t = 10;
+	for (const [x, y] of line(80, 200, 300, 200)) trial.move(x, y, (t += 3));
+	assert.equal(trial.release(300, 200, t), null, 'release while steering');
+	assert.equal(trial.state, 'steering');
+	assert.equal(trial.press(300, 200, t), null, 'a click while steering does nothing');
+	for (const [x, y] of line(300, 200, 520, 200)) trial.move(x, y, (t += 3));
+	assert.equal(trial.state, 'done');
+	assert.equal(trial.result().completed, true);
+	// Leaving the tunnel still fails.
+	const off = new SteeringTrial(tunnel(), { hold: false });
+	off.press(80, 200, 0);
+	const events = line(80, 200, 300, 260).map(([x, y], i) => off.move(x, y, i * 3));
+	assert.ok(events.includes('fail'));
+	assert.equal(off.result().failReason, 'exit');
+});
+
 test('going around the start line is an invalid start', () => {
 	const trial = new SteeringTrial(tunnel());
 	const path = [...line(80, 200, 80, 240), ...line(80, 240, 130, 240)];

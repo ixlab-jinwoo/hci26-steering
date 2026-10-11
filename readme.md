@@ -66,9 +66,12 @@ The student runs the test with their participants on their own laptop. The A2 pa
 participants on the laptop together (the group analysis of the merge view), and offers each participant's CSV, one CSV
 with everyone and a participant summary. Participants run on other laptops are combined in the merge view (below).
 
-Input: mouse or stylus only. Finger touches are ignored; a touchpad has to be ruled out by the student (browsers report
-it as a mouse); a mismatch between the chosen device and the actual pointer type is pointed out once. The window has to
-be at least 960 × 580 CSS pixels.
+Input: mouse, touchpad or stylus, recorded in the `device` column; finger touches are ignored. With a mouse or a stylus
+the button (or the pen) is held from the start zone to the finish line, and letting go fails the trial. With a touchpad
+a click (or tap) in the start zone arms the trial and the pointer then steers without a button, so lifting the finger to
+reposition it is allowed (the clock keeps running); leaving the tunnel still fails the trial. Browsers report touchpads
+as a mouse, so choosing Mouse asks to confirm that an external mouse is used; a mismatch between the chosen device and
+the actual pointer type is pointed out once. The window has to be at least 960 × 580 CSS pixels.
 
 Analysis per participant: mean MT of completed trials, error rate (failed attempts), throughput ID / MT, per shape the
 fit MT = a + b·ID and IP = 1000/b; speed along the path in 20 pieces (`s01`–`s20`), path length / L and the offset

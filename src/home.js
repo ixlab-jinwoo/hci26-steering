@@ -52,7 +52,7 @@ export function home(root) {
 					kicker: 'Assignment 2 · individual homework',
 					title: 'Linear vs. circular steering',
 					text: 'Steer through straight and circular tunnels of the same index of difficulty. Run your participants on your laptop, download each one’s CSV file and merge the files.',
-					meta: 'About 4 minutes per person · mouse or stylus',
+					meta: 'About 4 minutes per person · mouse, touchpad or stylus',
 				}),
 			),
 			h(
