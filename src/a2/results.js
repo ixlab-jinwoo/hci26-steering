@@ -29,7 +29,7 @@ const CAPTIONS = {
 	mt: 'Mean movement time per condition and the least-squares line MT = a + b · ID per shape (ID = L / W). The steering law predicts a straight line; does one line fit both shapes?',
 	tp: 'Throughput ID / MT per condition; the horizontal line is the shape’s mean throughput.',
 	errors: 'Share of attempts that left the tunnel or released the button. Failed attempts were repeated later.',
-	path: 'Length of the pointer path divided by the centre-line length L. Below 1: the path cut the corner on the inside of the circle.',
+	path: 'Length of the pointer path divided by the centre-line length L; the grey line marks 1. Below 1: the path cut the corner on the inside of the circle.',
 	paired:
 		'Each grey line is one participant’s slope b (ms per unit of ID) for both shapes. Coloured markers: mean and 95 % confidence interval.',
 	profile:
@@ -175,7 +175,8 @@ export function renderIndividual(container, summary) {
 		xFormat: fmt.int,
 		yLabel: 'path length / L',
 		yFormat: fmt.two,
-		yMax: 1.2,
+		yPad: 0.15,
+		yRef: 1,
 		series: shapes.map((s) => ({
 			name: SHAPE_LABEL[s],
 			color: SHAPE_COLOR[s],
@@ -278,7 +279,8 @@ export function renderGroup(container, group) {
 		xFormat: fmt.int,
 		yLabel: 'path length / L',
 		yFormat: fmt.two,
-		yMax: 1.2,
+		yPad: 0.15,
+		yRef: 1,
 		series: shapes.map((s) => ({
 			name: SHAPE_LABEL[s],
 			color: SHAPE_COLOR[s],

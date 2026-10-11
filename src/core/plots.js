@@ -15,12 +15,16 @@ const finite = (v) => v !== null && v !== undefined && Number.isFinite(v);
  * the experiment (IDs, widths): the x axis spans just these, with a tick at
  * each, so it shows no values that were not tested.
  *
+ * The y axis starts at 0 (up to `yMax` if given), or with `yPad` spans the
+ * data from its minimum to its maximum plus `yPad` on both sides. `yRef`
+ * draws a horizontal reference line at that value.
+ *
  * series: [{ name, color, points: [{x, y, lo, hi, tip}], fit, mean, connect }]
  * tip(point) returns the tooltip rows for a point.
  */
 export function scatterFit(
 	el,
-	{ series, xLabel, yLabel, xFormat, yFormat, height = 280, empty = 'No data yet', yMax },
+	{ series, xLabel, yLabel, xFormat, yFormat, height = 280, empty = 'No data yet', yMax, yPad, yRef },
 ) {
 	legend(
 		el.legend,
@@ -36,12 +40,32 @@ export function scatterFit(
 		.scaleLinear()
 		.domain([x0 - pad, x1 + pad])
 		.range([0, f.width]);
-	const top = yMax ?? (d3.max(all, (p) => (finite(p.hi) ? p.hi : p.y)) || 1) * 1.08;
-	const y = d3.scaleLinear().domain([0, top]).range([f.height, 0]).nice();
+	const ys = all.flatMap((p) => [p.y, p.lo, p.hi]).filter(finite);
+	const y =
+		yPad !== undefined && ys.length
+			? d3
+					.scaleLinear()
+					.domain([Math.max(0, d3.min(ys) - yPad), d3.max(ys) + yPad])
+					.range([f.height, 0])
+			: d3
+					.scaleLinear()
+					.domain([0, yMax ?? (d3.max(all, (p) => (finite(p.hi) ? p.hi : p.y)) || 1) * 1.08])
+					.range([f.height, 0])
+					.nice();
 	axes(f, x, y, { xLabel, yLabel, xFormat, yFormat, xTickValues: levels.length ? levels : null });
 	if (!all.length) {
 		emptyMessage(f, empty);
 		return;
+	}
+	const [yLow, yHigh] = y.domain();
+	if (finite(yRef) && yRef >= yLow && yRef <= yHigh) {
+		f.g
+			.append('line')
+			.attr('class', 'ref-line')
+			.attr('x1', 0)
+			.attr('x2', f.width)
+			.attr('y1', y(yRef))
+			.attr('y2', y(yRef));
 	}
 
 	for (const s of series) {
@@ -95,8 +119,8 @@ export function scatterFit(
 			.attr(
 				'd',
 				(p) =>
-					`M${x(p.x)},${y(Math.max(0, p.lo))}V${y(p.hi)}` +
-					`M${x(p.x) - 3},${y(p.hi)}h6M${x(p.x) - 3},${y(Math.max(0, p.lo))}h6`,
+					`M${x(p.x)},${y(Math.max(yLow, p.lo))}V${y(Math.min(yHigh, p.hi))}` +
+					`M${x(p.x) - 3},${y(Math.min(yHigh, p.hi))}h6M${x(p.x) - 3},${y(Math.max(yLow, p.lo))}h6`,
 			)
 			.style('stroke', s.color)
 			.attr('stroke-width', 1.5);

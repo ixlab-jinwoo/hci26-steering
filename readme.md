@@ -62,8 +62,9 @@ Design: L ∈ {500, 800} px × W ∈ {30, 45, 60} px (ID 8.3–26.7) × 2 shapes
 the narrowest tunnel), then one block of 36 trials (3 per condition) in random order; about 4 minutes per participant.
 The session is saved after every trial, so a reload continues where it stopped.
 
-The student runs the test with their participants on their own laptop and downloads each participant's CSV file; the
-merge view (below) puts the files together.
+The student runs the test with their participants on their own laptop. The A2 page shows the results of all
+participants on the laptop together (the group analysis of the merge view), and offers each participant's CSV, one CSV
+with everyone and a participant summary. Participants run on other laptops are combined in the merge view (below).
 
 Input: mouse or stylus only. Finger touches are ignored; a touchpad has to be ruled out by the student (browsers report
 it as a mouse); a mismatch between the chosen device and the actual pointer type is pointed out once. The window has to
