@@ -814,3 +814,90 @@ table.data td:first-child {
 	border-radius: 999px;
 	color: #fff;
 }
+
+/* ------------------------------------------------------------------ assignment 2 */
+
+.stage .tunnel-body {
+	fill: var(--tunnel);
+	fill-rule: evenodd;
+	transition: fill 0.15s;
+}
+
+.stage.flash-ok .tunnel-body {
+	fill: var(--tunnel-ok);
+}
+
+.stage.flash-fail .tunnel-body {
+	fill: var(--tunnel-fail);
+}
+
+.stage .tunnel-wall {
+	fill: none;
+	stroke: var(--tunnel-wall);
+	stroke-width: 1.5;
+}
+
+.stage .start-zone {
+	fill: var(--start-zone);
+}
+
+.stage.armed .start-zone {
+	fill: var(--tunnel-ok);
+}
+
+.stage .finish-zone {
+	fill: var(--finish-zone);
+}
+
+.stage .start-line {
+	stroke: var(--good);
+	stroke-width: 3;
+	stroke-linecap: round;
+}
+
+.stage .finish-line {
+	stroke: var(--ink);
+	stroke-width: 3;
+	stroke-linecap: round;
+}
+
+.stage .arrow {
+	fill: var(--ink-2);
+}
+
+.stage .centreline {
+	fill: none;
+	stroke: none;
+}
+
+.stage .trace {
+	fill: none;
+	stroke: var(--trace);
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.stage .fail-mark {
+	stroke: var(--critical);
+	stroke-width: 3;
+	stroke-linecap: round;
+}
+
+.facets {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+@media (max-width: 900px) {
+	.facets {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.facets h4 {
+	margin: 0 0 4px;
+	font-size: 0.85rem;
+	font-weight: 600;
+}

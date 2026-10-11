@@ -20,10 +20,15 @@ import { createTracker, widthAt } from './geometry.js';
 export const START_ZONE = 40; // px of tunnel before the start line
 
 export class SteeringTrial {
-	constructor(tunnel, { policy = 'strict', startZone = START_ZONE } = {}) {
+	/**
+	 * @param minZoneWidth  open tunnels only: the start zone is at least this
+	 *     wide across the tunnel (the start line itself keeps the tunnel width)
+	 */
+	constructor(tunnel, { policy = 'strict', startZone = START_ZONE, minZoneWidth = 0 } = {}) {
 		this.tunnel = tunnel;
 		this.policy = policy;
 		this.startZone = startZone;
+		this.minZoneWidth = tunnel.closed ? 0 : minZoneWidth;
 		this.state = 'idle';
 		this.reset();
 	}
@@ -47,7 +52,8 @@ export class SteeringTrial {
 		if (this.state !== 'idle') return null;
 		const tracker = createTracker(this.tunnel);
 		const loc = tracker.update(x, y);
-		if (loc.progress < -this.startZone || loc.progress >= 0 || Math.abs(loc.d) > loc.w / 2) return null;
+		const half = Math.max(loc.w, this.minZoneWidth) / 2;
+		if (loc.progress < -this.startZone || loc.progress >= 0 || Math.abs(loc.d) > half) return null;
 
 		this.reset();
 		this.tracker = tracker;
