@@ -4,8 +4,9 @@
  *
  *   participants → new participant → run → results
  *
- * Each participant's data is downloaded as a CSV file; the merge view
- * (#/a2/merge) combines the files. Mouse or stylus only: finger touches are
+ * The page shows the results of all participants on this laptop. Each
+ * participant's data can be downloaded as a CSV file; the merge view
+ * (#/a2/merge) combines files from several laptops. Mouse or stylus only: finger touches are
  * ignored, and a mismatch between the chosen device and the actual input is
  * pointed out once. A running session is saved after every trial, so a
  * reload can continue it.
@@ -44,7 +45,8 @@ import {
 import { A2_SCHEMA, SPEED_KEYS } from './schema.js';
 import { speedProfile, offsets, summarizeSession, summarizeGroup } from './analysis.js';
 import { TunnelStage, STAGE_W, STAGE_H, MIN_ZONE } from './stage.js';
-import { renderIndividual, participantTable, SHAPE_COLOR } from './results.js';
+import { renderIndividual, renderGroup, participantTable, SHAPE_COLOR } from './results.js';
+import { A2_MERGE } from './merge.js';
 
 const NAME = 'a2';
 const TITLE = 'Assignment 2 · linear vs. circular steering';
@@ -89,7 +91,9 @@ export function a2View(root) {
 		const pending = loadSession(NAME);
 		const people = loadParticipants(NAME, A2_SCHEMA);
 		const byId = new Map(people.map((p) => [p.id, p]));
-		const group = summarizeGroup(people.flatMap((p) => p.rows));
+		const rows = people.flatMap((p) => p.rows);
+		const group = summarizeGroup(rows);
+		const body = h('div');
 
 		const actions = (p) => {
 			const person = byId.get(p.session);
@@ -118,7 +122,7 @@ export function a2View(root) {
 					'p',
 					{ class: 'lead' },
 					'Run the test with your participants on this laptop, one after the other. ' +
-						'Download each participant’s CSV file, then merge the files to see all participants together.',
+						'The results of everyone on this laptop are shown below the list; download the CSV files to hand them in.',
 				),
 				pending
 					? h(
@@ -166,15 +170,49 @@ export function a2View(root) {
 						pending ? h('span', { class: 'muted' }, 'Finish or discard the unfinished run first.') : null,
 					),
 				),
+				people.length
+					? [
+							h(
+								'h2',
+								{},
+								`Results of the participants on this laptop (${people.length} participant${people.length === 1 ? '' : 's'})`,
+							),
+							body,
+							h(
+								'div',
+								{ class: 'btn-row', style: { marginTop: '16px' } },
+								h(
+									'button',
+									{
+										class: 'btn',
+										onclick: () => download(`A2_all_${dateStamp()}.csv`, 'text/csv', toCSV(rows, A2_SCHEMA)),
+									},
+									'Download all participants as one CSV',
+								),
+								h(
+									'button',
+									{
+										class: 'btn',
+										onclick: () =>
+											download(
+												`A2_participants_${dateStamp()}.csv`,
+												'text/csv',
+												toCSV(A2_MERGE.summaryRows(group), A2_MERGE.summarySchema),
+											),
+									},
+									'Download participant summary',
+								),
+							),
+						]
+					: null,
 				h(
 					'section',
-					{ class: 'card', style: { marginTop: '16px' } },
-					h('h2', { style: { marginTop: 0 } }, 'All participants together'),
+					{ class: 'card', style: { marginTop: '24px' } },
+					h('h2', { style: { marginTop: 0 } }, 'Participants from other laptops'),
 					h(
 						'p',
 						{},
-						'Merge the CSV files of your participants, from this laptop or from others, to see the group results: ' +
-							'movement time and throughput per shape, speed profiles and each participant’s steering slope.',
+						'Some participants ran the test on another laptop? Merge their CSV files with the participants on this laptop to see everyone together.',
 					),
 					h('a', { class: 'btn', href: '#/a2/merge' }, 'Merge participant files'),
 				),
@@ -204,6 +242,12 @@ export function a2View(root) {
 				),
 			),
 		);
+		if (!people.length) return null;
+		renderGroup(body, group);
+		return onResize(() => {
+			body.replaceChildren();
+			renderGroup(body, group);
+		});
 	}
 
 	// ------------------------------------------------------------ new participant
