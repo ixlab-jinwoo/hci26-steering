@@ -1,12 +1,15 @@
-# Publishes the page to GitHub Pages when a version tag (v1.0.0, …) is
-# pushed (also one created through a GitHub release), or when started by hand from the
-# Actions tab. Pushes to master alone do not change the published page, so
-# a running study is never switched to new code by accident.
+# Builds the single-file app and publishes it
+#   - to GitHub Pages (dist/index.html), and
+#   - as hci26-steering.html attached to the GitHub release of the tag,
+# when a version tag (v1.0.0, …) is pushed, including one created through a
+# GitHub release. It can also be started by hand from the Actions tab; then
+# only GitHub Pages is updated. Pushes to master alone change nothing that
+# students see.
 #
 # One-time setup: Settings → Pages → Build and deployment → Source:
 # "GitHub Actions".
 
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
@@ -14,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -27,19 +30,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      - run: npm ci
       - run: npm test
-      - name: Assemble site
+      - run: npm run build
+      - name: Attach the offline file to the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir _site
-          cp -r index.html css js vendor _site/
-          node scripts/stamp-version.mjs _site/version.json
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/hci26-steering.html --clobber
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
   deploy:
     needs: build

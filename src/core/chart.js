@@ -1,20 +1,14 @@
 /**
- * Small helpers shared by all plots: frame and axes, legend, tooltip and
- * colours. D3 v7 is loaded as a classic script and used through the global.
+ * Small helpers shared by all plots: frame and axes, legend, tooltip,
+ * colours and a few mark types.
  */
 
-const d3 = window.d3;
+import * as d3 from 'd3';
 
-/** Colour of a data set's colour slot (grey once all 8 slots are taken). */
-export function slotColor(slot) {
-	return slot >= 0 && slot < 8 ? `var(--series-${slot + 1})` : 'var(--series-other)';
+/** Categorical colour slot i (0-based), defined in styles.css. */
+export function seriesColor(i) {
+	return i >= 0 && i < 8 ? `var(--series-${i + 1})` : 'var(--series-other)';
 }
-
-export const SHAPE_COLORS = {
-	straight: 'var(--series-1)',
-	circular: 'var(--series-2)',
-	tapered: 'var(--series-3)',
-};
 
 /**
  * Create an empty chart in container. The width follows the container; the
