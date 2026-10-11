@@ -8,7 +8,8 @@ import {
 	makeTunnel,
 	radiusFor,
 	REPS,
-	BLOCKS,
+	PRACTICE,
+	DIRECTION,
 	MAX_ATTEMPTS,
 	SHAPES,
 	LENGTHS,
@@ -50,23 +51,33 @@ test('tunnels fit the stage (920 × 360) with their start and finish zones', () 
 	}
 });
 
-test('plan: practice with every condition once, then balanced shuffled blocks', () => {
+test('plan: four practice trials, then one shuffled block with every condition REPS times', () => {
 	const plan = buildPlan(seededRandom(5));
-	assert.equal(plan.length, 1 + BLOCKS);
-	assert.equal(plan[0].practice, true);
-	assert.equal(plan[0].queue.length, SHAPES.length * LENGTHS.length * WIDTHS.length);
-	for (const block of plan.slice(1)) {
-		assert.equal(block.queue.length, 12 * REPS);
-		const dirs = {};
-		for (const { spec } of block.queue) {
-			const key = `${spec.shape}${spec.L}${spec.W}${spec.direction}`;
-			dirs[key] = (dirs[key] || 0) + 1;
-		}
-		assert.ok(
-			Object.values(dirs).every((n) => n === REPS / 2),
-			'each direction equally often',
-		);
+	assert.equal(plan.length, 2);
+	const [practice, main] = plan;
+	assert.equal(practice.practice, true);
+	assert.equal(practice.queue.length, PRACTICE.length * SHAPES.length);
+	assert.equal(main.practice, false);
+	assert.equal(main.queue.length, SHAPES.length * LENGTHS.length * WIDTHS.length * REPS);
+	const counts = {};
+	for (const { spec } of main.queue) {
+		assert.equal(spec.direction, DIRECTION[spec.shape]);
+		const key = `${spec.shape}${spec.L}${spec.W}`;
+		counts[key] = (counts[key] || 0) + 1;
 	}
+	assert.equal(Object.keys(counts).length, 12);
+	assert.ok(Object.values(counts).every((n) => n === REPS));
+	const shapes = main.queue.map((q) => q.spec.shape).join();
+	assert.notEqual(shapes, [...main.queue.map((q) => q.spec.shape)].sort().join(), 'shuffled');
+});
+
+test('easier than before: the hardest condition has ID ≤ 30 and W ≥ 30 px', () => {
+	const ids = conditions()
+		.filter((c) => c.shape === 'linear')
+		.map((c) => c.ID);
+	assert.ok(Math.max(...ids) <= 30);
+	assert.ok(Math.min(...WIDTHS) >= 30);
+	assert.equal(new Set(ids.map((id) => id.toFixed(2))).size, 6, 'six distinct IDs per shape');
 });
 
 test('requeue puts a failed trial later in the block, up to MAX_ATTEMPTS', () => {
@@ -169,8 +180,8 @@ test('session summary: fits, IP, errors, path ratio and profiles', () => {
 	close(s.shapes.linear.ip, 1000 / 60, 1e-6);
 	close(s.shapes.linear.errorRate, 0, 1e-12);
 	close(s.shapes.circular.errorRate, 6 / 30, 1e-12);
-	const c = s.conditions.find((x) => x.shape === 'circular' && x.L === 500 && x.W === 40);
-	close(c.pathRatio, 1 - 40 / (4 * radiusFor(500)), 1e-9);
+	const c = s.conditions.find((x) => x.shape === 'circular' && x.L === 500 && x.W === 60);
+	close(c.pathRatio, 1 - 60 / (4 * radiusFor(500)), 1e-9);
 	close(c.inside, 4, 1e-9);
 	close(c.tp, c.ID / (c.mt / 1000), 1e-9);
 	assert.deepEqual(Object.keys(s.shapes.linear.profiles).map(Number), WIDTHS);
@@ -187,7 +198,7 @@ test('group summary: paired slope and throughput differences', () => {
 	close(g.slopeDifference.mean, (20 + 25 + 25) / 3, 1e-6);
 	assert.ok(g.tpDifference.mean < 0, 'circular has lower throughput');
 	assert.equal(g.shapes.circular.conditions.length, 6);
-	assert.equal(g.shapes.linear.profiles[20].length, 20);
+	assert.equal(g.shapes.linear.profiles[WIDTHS[0]].length, 20);
 });
 
 test('rows survive a CSV round trip', () => {

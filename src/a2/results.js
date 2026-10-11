@@ -1,6 +1,6 @@
 /**
  * Assignment 2 figures and tables, for one participant (results screen) and
- * for a group (merge view).
+ * for a group (participants on this laptop, or merged files).
  */
 
 import { h } from '../core/dom.js';
@@ -285,8 +285,8 @@ export function renderGroup(container, group) {
 	});
 }
 
-/** Participant table of a group. */
-export function participantTable(group) {
+/** Participant table of a group; `actions(p)` adds a column of buttons. */
+export function participantTable(group, actions = null) {
 	const v = (p, s, f) => (p.shapes[s] ? f(p.shapes[s]) : '–');
 	const b = (x) => (x.fit ? fmt.int(x.fit.b) : '–');
 	return table(
@@ -300,6 +300,7 @@ export function participantTable(group) {
 			{ label: 'TP circular', value: (p) => v(p, 'circular', (x) => dash(x.tp, fmt.one)) },
 			{ label: 'Errors linear', value: (p) => v(p, 'linear', (x) => fmt.pct(x.errorRate)) },
 			{ label: 'Errors circular', value: (p) => v(p, 'circular', (x) => fmt.pct(x.errorRate)) },
+			...(actions ? [{ label: '', value: actions }] : []),
 		],
 		group.participants,
 	);

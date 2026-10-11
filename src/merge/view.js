@@ -1,22 +1,25 @@
 /**
- * Merge view: drop the CSV files exported by several participants to see
- * them together. Files are recognised by their `assignment` column; a
+ * Merge view of an assignment: drop the CSV files of single participants (or
+ * merged files) to see everyone together, and add the participants stored
+ * on this laptop. Files are recognised by their `assignment` column; a
  * participant session that is loaded twice is skipped. Nothing is stored:
  * reload the page to start over.
+ *
+ * `kind` describes the assignment (see a2/merge.js).
  */
 
 import { h, download, dateStamp, onResize } from '../core/dom.js';
 import { pageHeader } from '../home.js';
 import { fromCSV, toCSV } from '../core/csv.js';
 import { groupBy } from '../core/stats.js';
-import { KINDS } from './kinds.js';
 
-export function mergeView(root) {
-	const rows = new Map(KINDS.map((k) => [k.code, []]));
+export function mergeView(root, kind) {
+	const rows = [];
 	const sessions = new Set();
-	const filters = new Map();
+	let filter = 'all';
 	const log = h('ul', { class: 'file-list', 'aria-live': 'polite' });
 	const results = h('div');
+	const local = kind.local();
 
 	const input = h('input', {
 		type: 'file',
@@ -47,31 +50,45 @@ export function mergeView(root) {
 		h('button', { class: 'btn', type: 'button', onclick: () => input.click() }, 'Choose files'),
 		input,
 	);
+	const localCount = new Set(local.map((r) => r.session)).size;
 
 	root.append(
-		pageHeader('Merge results'),
+		pageHeader(kind.title),
 		h(
 			'main',
 			{ class: 'wrap' },
-			h('h1', {}, 'Merge results'),
+			h('h1', {}, 'Merge participant files'),
 			h(
 				'p',
 				{ class: 'lead' },
-				'Drop the CSV files of your team, or of the whole class, to see everyone’s results together. ' +
+				'Drop the CSV files of your participants to see them together. ' +
 					'Each participant is analysed on their own first; the figures show the mean of the participants with 95 % confidence intervals.',
 			),
 			zone,
-			log,
 			h(
 				'div',
-				{ class: 'btn-row' },
+				{ class: 'btn-row', style: { marginTop: '12px' } },
+				localCount
+					? h(
+							'button',
+							{
+								class: 'btn',
+								type: 'button',
+								onclick: () => {
+									note('This laptop', describe(addRecords(local)));
+									render();
+								},
+							},
+							`Add the ${localCount} participant${localCount === 1 ? '' : 's'} on this laptop`,
+						)
+					: null,
 				h(
 					'button',
 					{
 						class: 'btn',
 						type: 'button',
 						onclick: () => {
-							for (const list of rows.values()) list.length = 0;
+							rows.length = 0;
 							sessions.clear();
 							log.replaceChildren();
 							render();
@@ -79,10 +96,34 @@ export function mergeView(root) {
 					},
 					'Clear',
 				),
+				h('a', { class: 'btn', href: kind.back.href }, kind.back.label),
 			),
+			log,
 			results,
 		),
 	);
+
+	/** Adds records grouped by session; returns { added, skipped } sessions. */
+	function addRecords(records) {
+		let added = 0;
+		let skipped = 0;
+		for (const [session, rs] of groupBy(records, (r) => r.session)) {
+			if (sessions.has(session)) {
+				skipped++;
+				continue;
+			}
+			sessions.add(session);
+			rows.push(...rs);
+			added++;
+		}
+		return { added, skipped };
+	}
+
+	function describe({ added, skipped }) {
+		return (
+			`${added} participant${added === 1 ? '' : 's'} added` + (skipped ? `, ${skipped} already loaded (skipped)` : '')
+		);
+	}
 
 	async function addFiles(files) {
 		for (const file of files) {
@@ -95,28 +136,17 @@ export function mergeView(root) {
 			}
 			const probe = fromCSV(text, []);
 			const code = probe.records[0] && probe.records[0].assignment;
-			const kind = KINDS.find((k) => k.code === code);
-			if (!kind) {
-				note(file.name, 'not a CSV file exported by this app');
+			if (code !== kind.code) {
+				note(
+					file.name,
+					/^A\d$/.test(code || '')
+						? `a file of Assignment ${code.slice(1)}, not of this assignment`
+						: 'not a CSV file exported by this app',
+				);
 				continue;
 			}
 			const parsed = fromCSV(text, kind.schema).records.filter((r) => r.assignment === kind.code);
-			let added = 0;
-			let skipped = 0;
-			for (const [session, rs] of groupBy(parsed, (r) => r.session)) {
-				if (sessions.has(session)) {
-					skipped++;
-					continue;
-				}
-				sessions.add(session);
-				rows.get(kind.code).push(...rs);
-				added++;
-			}
-			note(
-				file.name,
-				`${kind.code}: ${added} participant${added === 1 ? '' : 's'} added` +
-					(skipped ? `, ${skipped} already loaded (skipped)` : ''),
-			);
+			note(file.name, describe(addRecords(parsed)));
 		}
 		render();
 	}
@@ -127,55 +157,41 @@ export function mergeView(root) {
 
 	function render() {
 		results.replaceChildren();
-		for (const kind of KINDS) {
-			const all = rows.get(kind.code);
-			if (!all.length) continue;
-			const section = h('section');
-			results.append(section);
-			renderKind(section, kind, all);
-		}
-	}
-
-	function renderKind(section, kind, all) {
-		const values = [...new Set(all.map((r) => r[kind.filter.key]).filter(Boolean))].sort();
-		const current = filters.get(kind.code) || 'all';
+		if (!rows.length) return;
+		const values = [...new Set(rows.map((r) => r[kind.filter.key]).filter(Boolean))].sort();
+		if (filter !== 'all' && !values.includes(filter)) filter = 'all';
 		const select = h(
 			'select',
 			{
 				onchange: (e) => {
-					filters.set(kind.code, e.target.value);
+					filter = e.target.value;
 					render();
 				},
 			},
 			h('option', { value: 'all' }, `All (${values.length})`),
-			values.map((v) => h('option', { value: v, selected: v === current }, v)),
+			values.map((v) => h('option', { value: v, selected: v === filter }, v)),
 		);
-		const selected = current === 'all' ? all : all.filter((r) => r[kind.filter.key] === current);
+		const selected = filter === 'all' ? rows : rows.filter((r) => r[kind.filter.key] === filter);
 		const group = kind.summarize(selected);
 		const versions = [...new Set(selected.map((r) => r.version))];
-
-		section.append(
+		const body = h('div', { style: { marginTop: '16px' } });
+		// Element.append would insert null as text; h() skips it.
+		results.append(
 			h(
 				'div',
 				{},
-				h('h2', {}, kind.title),
 				h('div', { class: 'filter-row' }, h('label', {}, `${kind.filter.label} `, select)),
 				versions.length > 1
 					? h(
 							'p',
 							{ class: 'notice warn' },
-							`These files come from different versions of the app (${versions.join(', ')}). Check that everyone used the same file.`,
+							`These files come from different versions of the app (${versions.join(', ')}). Check that the same file was used for everyone.`,
 						)
 					: null,
-				h('h3', { style: { marginTop: '16px' } }, `Participants (${group.participants.length})`),
+				h('h2', {}, `Participants (${group.participants.length})`),
 				kind.participantTable(group),
 			),
-		);
-		const body = h('div');
-		section.append(body);
-		kind.render(body, group);
-		const label = current === 'all' ? 'all' : current;
-		section.append(
+			body,
 			h(
 				'div',
 				{ class: 'btn-row', style: { marginTop: '16px' } },
@@ -184,7 +200,7 @@ export function mergeView(root) {
 					{
 						class: 'btn',
 						onclick: () =>
-							download(`${kind.code}_merged_${label}_${dateStamp()}.csv`, 'text/csv', toCSV(selected, kind.schema)),
+							download(`${kind.code}_merged_${filter}_${dateStamp()}.csv`, 'text/csv', toCSV(selected, kind.schema)),
 					},
 					'Download merged CSV',
 				),
@@ -194,7 +210,7 @@ export function mergeView(root) {
 						class: 'btn',
 						onclick: () =>
 							download(
-								`${kind.code}_participants_${label}_${dateStamp()}.csv`,
+								`${kind.code}_participants_${filter}_${dateStamp()}.csv`,
 								'text/csv',
 								toCSV(kind.summaryRows(group), kind.summarySchema),
 							),
@@ -203,6 +219,7 @@ export function mergeView(root) {
 				),
 			),
 		);
+		kind.render(body, group);
 	}
 
 	return onResize(render);
