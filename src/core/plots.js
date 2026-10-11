@@ -11,26 +11,34 @@ const finite = (v) => v !== null && v !== undefined && Number.isFinite(v);
 
 /**
  * Points per series, optionally with 95 % CI bars (lo, hi), a fitted line
- * y = a + b·x and a horizontal mean line.
+ * y = a + b·x and a horizontal mean line. The x values are the levels of
+ * the experiment (IDs, widths): the x axis spans just these, with a tick at
+ * each, so it shows no values that were not tested.
  *
  * series: [{ name, color, points: [{x, y, lo, hi, tip}], fit, mean, connect }]
  * tip(point) returns the tooltip rows for a point.
  */
-export function scatterFit(el, { series, xLabel, yLabel, yFormat, height = 280, empty = 'No data yet', yMax }) {
+export function scatterFit(
+	el,
+	{ series, xLabel, yLabel, xFormat, yFormat, height = 280, empty = 'No data yet', yMax },
+) {
 	legend(
 		el.legend,
 		series.map((s) => ({ label: s.name, color: s.color })),
 	);
 	const f = frame(el.chart, { height });
 	const all = series.flatMap((s) => s.points).filter((p) => finite(p.y));
+	const levels = [...new Set(all.map((p) => +p.x.toFixed(6)))].sort((a, b) => a - b);
+	const x0 = levels.length ? levels[0] : 0;
+	const x1 = levels.length ? levels[levels.length - 1] : 1;
+	const pad = x1 > x0 ? (x1 - x0) * 0.08 : Math.max(1, Math.abs(x0) * 0.1);
 	const x = d3
 		.scaleLinear()
-		.domain([0, (d3.max(all, (p) => p.x) || 1) * 1.08])
-		.range([0, f.width])
-		.nice();
+		.domain([x0 - pad, x1 + pad])
+		.range([0, f.width]);
 	const top = yMax ?? (d3.max(all, (p) => (finite(p.hi) ? p.hi : p.y)) || 1) * 1.08;
 	const y = d3.scaleLinear().domain([0, top]).range([f.height, 0]).nice();
-	axes(f, x, y, { xLabel, yLabel, yFormat });
+	axes(f, x, y, { xLabel, yLabel, xFormat, yFormat, xTickValues: levels.length ? levels : null });
 	if (!all.length) {
 		emptyMessage(f, empty);
 		return;

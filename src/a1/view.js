@@ -326,13 +326,13 @@ export function a1View(root) {
 							'li',
 							{},
 							h('strong', {}, 'Pointing: '),
-							'move to the highlighted bar and click inside it. The bar is W pixels wide.',
+							'move to the highlighted bar and click inside it. The bar is W pixels wide and as tall as the test area: only the horizontal position counts.',
 						),
 						h(
 							'li',
 							{},
 							h('strong', {}, 'Crossing: '),
-							'sweep the pointer through the highlighted line without clicking and without stopping. The line is W pixels long.',
+							'sweep the pointer through the highlighted line without clicking and without stopping. The line is W pixels long: only where you pass it counts, not how far you go beyond.',
 						),
 						h(
 							'li',

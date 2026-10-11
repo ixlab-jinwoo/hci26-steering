@@ -2,17 +2,21 @@
  * Drawing of the two targets of Assignment 1. The stage is drawn 1:1 in CSS
  * pixels, never scaled.
  *
- *   pointing  a bar of width W (the target, along the movement)
+ *   pointing  a bar of width W (along the movement) over the full height
+ *             of the stage: only the horizontal position of a click counts
  *   crossing  a goal segment of length W (across the movement), with small
- *             end marks
+ *             end marks: only where the pointer passes the line counts, not
+ *             how far it goes beyond
+ *
+ * So each technique has one dimension constrained by W and one left free,
+ * at the same amplitude A and index of difficulty.
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export const STAGE_W = 760;
 export const STAGE_H = 360;
-const BAR_TOP = 40;
-const BAR_HEIGHT = STAGE_H - 2 * BAR_TOP;
+const LABEL_Y = 22;
 
 function el(name, attrs) {
 	const node = document.createElementNS(SVG_NS, name);
@@ -41,7 +45,7 @@ export class A1Stage {
 		for (const x of seq.targetX) {
 			const g = el('g', { class: 'a1-target' });
 			if (seq.technique === 'pointing') {
-				g.append(el('rect', { class: 'a1-bar', x: x - seq.W / 2, y: BAR_TOP, width: seq.W, height: BAR_HEIGHT }));
+				g.append(el('rect', { class: 'a1-bar', x: x - seq.W / 2, y: 0, width: seq.W, height: STAGE_H }));
 			} else {
 				const y0 = seq.cy - seq.W / 2;
 				const y1 = seq.cy + seq.W / 2;
@@ -54,7 +58,7 @@ export class A1Stage {
 			this.svg.append(g);
 			this.targets.push(g);
 		}
-		this.label = el('text', { class: 'a1-start-label', x: seq.targetX[0], y: BAR_TOP - 12 });
+		this.label = el('text', { class: 'a1-start-label', x: seq.targetX[0], y: LABEL_Y });
 		this.label.textContent = 'Start here';
 		this.svg.append(this.label);
 		this.update(seq);
