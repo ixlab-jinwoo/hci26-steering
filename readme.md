@@ -24,9 +24,13 @@ their results, CSV download and a delete button; an interrupted run can be conti
 
 A 1D reciprocal task (as in Fitts 1954) with two techniques at the same index of difficulty ID = log₂(A/W + 1):
 
-- **Pointing**: click inside a bar of width W (along the movement).
+- **Pointing**: click inside a bar of width W (along the movement). The bar is as tall as the test area, so only the
+  horizontal position of the click counts.
 - **Crossing**: sweep through a goal segment of length W (across the movement) without clicking, as in Accot & Zhai
-  (2002).
+  (2002). Only where the pointer passes the line counts, not how far it goes beyond.
+
+Each technique thus has one dimension constrained by W and one left free, at the same A: the comparison is stopping on
+a target vs. passing through it. A W × W square for pointing would add a second constraint to pointing only.
 
 Design: A ∈ {240, 480} px × W ∈ {15, 30, 60} px (ID 2.3–5.0 bits) × 2 techniques = 12 sequences in random order, after
 one practice sequence per technique. Each sequence has 10 timed movements; the first activation only starts the clock.

@@ -35,8 +35,12 @@ export function frame(container, { height = 220, margin = {} } = {}) {
 	};
 }
 
-/** Recessive gridlines, tick labels and axis titles. */
-export function axes(f, x, y, { xLabel, yLabel, xTicks = 5, yTicks = 5, xFormat, yFormat } = {}) {
+/**
+ * Recessive gridlines, tick labels and axis titles. `xTickValues` puts the
+ * x ticks at given values; labels that would overlap the previous one are
+ * left out (the tick mark stays).
+ */
+export function axes(f, x, y, { xLabel, yLabel, xTicks = 5, yTicks = 5, xFormat, yFormat, xTickValues } = {}) {
 	const grid = f.g.append('g').attr('class', 'grid');
 	grid
 		.selectAll('line.h')
@@ -49,6 +53,7 @@ export function axes(f, x, y, { xLabel, yLabel, xTicks = 5, yTicks = 5, xFormat,
 		.attr('y2', (d) => y(d));
 
 	const xAxis = d3.axisBottom(x).ticks(xTicks).tickSize(4).tickPadding(4);
+	if (xTickValues) xAxis.tickValues(xTickValues);
 	if (xFormat) xAxis.tickFormat(xFormat);
 	const yAxis = d3.axisLeft(y).ticks(yTicks).tickSize(0).tickPadding(6);
 	if (yFormat) yAxis.tickFormat(yFormat);
@@ -56,6 +61,14 @@ export function axes(f, x, y, { xLabel, yLabel, xTicks = 5, yTicks = 5, xFormat,
 	const gx = f.g.append('g').attr('transform', `translate(0,${f.height})`).call(xAxis);
 	gx.select('.domain').attr('class', 'baseline');
 	gx.selectAll('.tick line').attr('stroke', 'var(--axis)');
+	if (xTickValues) {
+		let right = -Infinity;
+		gx.selectAll('.tick text').each(function (d) {
+			const half = (this.getComputedTextLength ? this.getComputedTextLength() : 24) / 2;
+			if (x(d) - half < right + 4) this.style.display = 'none';
+			else right = x(d) + half;
+		});
+	}
 	const gy = f.g.append('g').call(yAxis);
 	gy.select('.domain').remove();
 

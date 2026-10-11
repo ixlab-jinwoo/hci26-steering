@@ -5,7 +5,8 @@
  * between them.
  *
  *   pointing  a press activates the active target; it is a hit when the
- *             press is within W/2 of the target's centre line.
+ *             press is within W/2 of the target's centre line, at any
+ *             height (the bar is as tall as the stage).
  *   crossing  moving across the active target's line activates it; the
  *             crossing point is interpolated between pointer samples and
  *             is a hit when it lies within W/2 of the stage centre, i.e. on

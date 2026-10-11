@@ -71,6 +71,7 @@ export function renderIndividual(container, summary) {
 
 	scatterFit(fig.mt, {
 		xLabel: 'index of difficulty ID (bits)',
+		xFormat: fmt.two,
 		yLabel: 'movement time (ms)',
 		series: techs.map((t) => ({
 			name: TECHNIQUE_LABEL[t],
@@ -82,6 +83,7 @@ export function renderIndividual(container, summary) {
 	});
 	scatterFit(fig.tp, {
 		xLabel: 'index of difficulty ID (bits)',
+		xFormat: fmt.two,
 		yLabel: 'throughput (bits/s)',
 		series: techs.map((t) => ({
 			name: TECHNIQUE_LABEL[t],
@@ -108,6 +110,7 @@ export function renderIndividual(container, summary) {
 	});
 	scatterFit(fig.errors, {
 		xLabel: 'index of difficulty ID (bits)',
+		xFormat: fmt.two,
 		yLabel: 'error rate',
 		yFormat: fmt.pct,
 		yMax: Math.max(0.2, ...summary.conditions.map((c) => c.errorRate)),
@@ -161,6 +164,7 @@ export function renderGroup(container, group) {
 
 	scatterFit(fig.mt, {
 		xLabel: 'index of difficulty ID (bits)',
+		xFormat: fmt.two,
 		yLabel: 'movement time (ms)',
 		series: techs.map((t) => ({
 			name: TECHNIQUE_LABEL[t],
@@ -204,6 +208,7 @@ export function renderGroup(container, group) {
 	});
 	scatterFit(fig.errors, {
 		xLabel: 'index of difficulty ID (bits)',
+		xFormat: fmt.two,
 		yLabel: 'error rate',
 		yFormat: fmt.pct,
 		yMax: Math.max(

@@ -129,6 +129,7 @@ export function renderIndividual(container, summary) {
 
 	scatterFit(fig.mt, {
 		xLabel: 'index of difficulty ID = L / W',
+		xFormat: fmt.one,
 		yLabel: 'movement time (ms)',
 		series: shapes.map((s) => ({
 			name: SHAPE_LABEL[s],
@@ -142,6 +143,7 @@ export function renderIndividual(container, summary) {
 	});
 	scatterFit(fig.tp, {
 		xLabel: 'index of difficulty ID = L / W',
+		xFormat: fmt.one,
 		yLabel: 'throughput (1/s)',
 		series: shapes.map((s) => ({
 			name: SHAPE_LABEL[s],
@@ -156,6 +158,7 @@ export function renderIndividual(container, summary) {
 	drawProfiles(fig, shapes, (s, W) => S[s].profiles[W] && S[s].profiles[W].map((y) => ({ y })));
 	scatterFit(fig.errors, {
 		xLabel: 'index of difficulty ID = L / W',
+		xFormat: fmt.one,
 		yLabel: 'error rate',
 		yFormat: fmt.pct,
 		yMax: Math.max(0.2, ...summary.conditions.map((c) => c.errorRate)),
@@ -169,6 +172,7 @@ export function renderIndividual(container, summary) {
 	});
 	scatterFit(fig.path, {
 		xLabel: 'tunnel width W (px)',
+		xFormat: fmt.int,
 		yLabel: 'path length / L',
 		yFormat: fmt.two,
 		yMax: 1.2,
@@ -228,6 +232,7 @@ export function renderGroup(container, group) {
 
 	scatterFit(fig.mt, {
 		xLabel: 'index of difficulty ID = L / W',
+		xFormat: fmt.one,
 		yLabel: 'movement time (ms)',
 		series: shapes.map((s) => ({
 			name: SHAPE_LABEL[s],
@@ -255,6 +260,7 @@ export function renderGroup(container, group) {
 	);
 	scatterFit(fig.errors, {
 		xLabel: 'index of difficulty ID = L / W',
+		xFormat: fmt.one,
 		yLabel: 'error rate',
 		yFormat: fmt.pct,
 		yMax: Math.max(0.2, ...shapes.flatMap((s) => S[s].conditions.map((c) => (c.errorRate ? c.errorRate.hi || 0 : 0)))),
@@ -269,6 +275,7 @@ export function renderGroup(container, group) {
 	});
 	scatterFit(fig.path, {
 		xLabel: 'tunnel width W (px)',
+		xFormat: fmt.int,
 		yLabel: 'path length / L',
 		yFormat: fmt.two,
 		yMax: 1.2,

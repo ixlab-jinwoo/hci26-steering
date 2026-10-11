@@ -812,7 +812,11 @@ table.data td:first-child {
 }
 
 .a1-start-label {
-	fill: var(--ink-2);
+	fill: var(--ink);
+	paint-order: stroke;
+	stroke: var(--surface);
+	stroke-width: 4px;
+	stroke-linejoin: round;
 	font:
 		600 13px system-ui,
 		-apple-system,
