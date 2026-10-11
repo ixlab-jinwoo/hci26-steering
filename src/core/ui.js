@@ -58,6 +58,17 @@ export function table(columns, rows) {
 	);
 }
 
+/** Small buttons for a table row: [{ label, onclick, danger }]. */
+export function rowActions(items) {
+	return h(
+		'span',
+		{ class: 'row-actions' },
+		items.map((a) =>
+			h('button', { class: 'btn small' + (a.danger ? ' danger' : ''), type: 'button', onclick: a.onclick }, a.label),
+		),
+	);
+}
+
 /** Radio buttons styled as choices. Returns the element and a getter. */
 export function choices(name, options, checked = null) {
 	const el = h(

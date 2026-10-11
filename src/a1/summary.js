@@ -1,10 +1,6 @@
-/** How the merge view handles Assignment 1 files. */
+/** One row per participant, for the team's summary CSV. */
 
-import { A1_SCHEMA } from './schema.js';
-import { summarizeGroup } from './analysis.js';
-import { renderGroup, participantTable } from './results.js';
-
-const SUMMARY_SCHEMA = [
+export const SUMMARY_SCHEMA = [
 	'team',
 	'participant',
 	'session',
@@ -21,7 +17,7 @@ const SUMMARY_SCHEMA = [
 	'error_crossing',
 ].map((key) => ({ key, type: ['team', 'participant', 'session', 'device'].includes(key) ? 'string' : 'number' }));
 
-function summaryRows(group) {
+export function summaryRows(group) {
 	return group.participants.map((p) => {
 		const row = { team: p.team, participant: p.participant, session: p.session, device: p.device };
 		for (const t of ['pointing', 'crossing']) {
@@ -35,15 +31,3 @@ function summaryRows(group) {
 		return row;
 	});
 }
-
-export const A1_MERGE = {
-	code: 'A1',
-	title: 'Assignment 1 · Fitts’ law vs. crossing',
-	schema: A1_SCHEMA,
-	filter: { key: 'team', label: 'Team' },
-	summarize: summarizeGroup,
-	render: renderGroup,
-	participantTable,
-	summarySchema: SUMMARY_SCHEMA,
-	summaryRows,
-};

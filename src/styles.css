@@ -344,6 +344,21 @@ a.btn {
 	color: #fff;
 }
 
+.btn.small {
+	font-size: 0.8rem;
+	padding: 3px 10px;
+	border-radius: 6px;
+}
+
+.btn.danger {
+	color: var(--critical);
+}
+
+.row-actions {
+	display: inline-flex;
+	gap: 6px;
+}
+
 .btn:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;

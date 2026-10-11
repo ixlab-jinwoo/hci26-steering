@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 
 import { mean, sd, linearFit, meanCI, t95, withoutOutliers, groupBy } from '../src/core/stats.js';
 import { toCSV, fromCSV, parseRows } from '../src/core/csv.js';
+import {
+	loadSession,
+	saveSession,
+	loadParticipants,
+	finishSession,
+	removeParticipant,
+	clearParticipants,
+} from '../src/core/session.js';
 
 const close = (actual, expected, tol) =>
 	assert.ok(Math.abs(actual - expected) <= tol, `expected ${expected}, got ${actual}`);
@@ -69,4 +77,52 @@ test('CSV parser handles CRLF, BOM and unknown columns', () => {
 		{ key: 'y', type: 'number' },
 	]);
 	assert.deepEqual(records, [{ x: 5, extra: 'hello', y: null }]);
+});
+
+test('finished participants are kept as CSV; a refused save keeps the running session', () => {
+	const store = new Map();
+	let full = false;
+	globalThis.window = {
+		localStorage: {
+			getItem: (k) => (store.has(k) ? store.get(k) : null),
+			setItem: (k, v) => {
+				if (full) throw new Error('QuotaExceededError');
+				store.set(k, String(v));
+			},
+			removeItem: (k) => store.delete(k),
+		},
+	};
+	try {
+		const schema = [
+			{ key: 'session', type: 'string' },
+			{ key: 'mt_ms', type: 'number' },
+		];
+		saveSession('x', { id: 'S1' });
+		const ann = finishSession('x', { id: 'S1', participant: 'Ann' }, [{ session: 'S1', mt_ms: 512.123456 }], schema);
+		assert.equal(ann.participant, 'Ann');
+		assert.equal(ann.rows[0].mt_ms, 512.1235, 'the values of the CSV file');
+		assert.ok(ann.finished);
+		assert.equal(loadSession('x'), null);
+
+		saveSession('x', { id: 'S2' });
+		full = true;
+		assert.equal(finishSession('x', { id: 'S2', participant: 'Bo' }, [{ session: 'S2', mt_ms: 1 }], schema), null);
+		full = false;
+		assert.deepEqual(loadSession('x'), { id: 'S2' });
+		assert.deepEqual(
+			loadParticipants('x', schema).map((p) => p.participant),
+			['Ann'],
+		);
+
+		finishSession('x', { id: 'S2', participant: 'Bo' }, [{ session: 'S2', mt_ms: 1 }], schema);
+		removeParticipant('x', 'S1');
+		assert.deepEqual(
+			loadParticipants('x', schema).map((p) => p.participant),
+			['Bo'],
+		);
+		clearParticipants('x');
+		assert.equal(loadParticipants('x', schema).length, 0);
+	} finally {
+		delete globalThis.window;
+	}
 });

@@ -1,5 +1,7 @@
 /** How the merge view handles Assignment 2 files. */
 
+import { loadParticipants } from '../core/session.js';
+import { mergeView } from '../merge/view.js';
 import { A2_SCHEMA } from './schema.js';
 import { summarizeGroup } from './analysis.js';
 import { renderGroup, participantTable } from './results.js';
@@ -50,4 +52,11 @@ export const A2_MERGE = {
 	participantTable,
 	summarySchema: SUMMARY_SCHEMA,
 	summaryRows,
+	/** Rows of the participants stored on this laptop. */
+	local: () => loadParticipants('a2', A2_SCHEMA).flatMap((p) => p.rows),
+	back: { href: '#/a2', label: 'Back to participants' },
 };
+
+export function a2MergeView(root) {
+	return mergeView(root, A2_MERGE);
+}

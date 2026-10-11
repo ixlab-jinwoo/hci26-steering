@@ -3,14 +3,13 @@
  * difficulty.
  *
  * Both shapes use the same path lengths L and widths W, so each condition
- * has ID = L / W for both: a straight tunnel of length L, or a full circle
- * of circumference L (radius L / 2π). Directions are balanced: left/right
- * for linear, clockwise/counter-clockwise for circular.
+ * has ID = L / W for both: a straight tunnel of length L (left to right), or
+ * a full circle of circumference L (radius L / 2π, clockwise).
  *
- * A practice block (one trial per condition) is followed by two blocks in
- * which every condition appears REPS times; the order within a block is
- * random. A failed trial is repeated later in the same block, at a random
- * position, up to MAX_ATTEMPTS attempts.
+ * Four practice trials (both shapes, the widest and the narrowest tunnel)
+ * are followed by one block in which every condition appears REPS times in
+ * random order. A failed trial is repeated later in the same block, at a
+ * random position, up to MAX_ATTEMPTS attempts.
  */
 
 import { shuffle } from '../core/random.js';
@@ -18,13 +17,16 @@ import { straightTunnel, circularTunnel } from '../core/geometry.js';
 
 export const SHAPES = ['linear', 'circular'];
 export const LENGTHS = [500, 800];
-export const WIDTHS = [20, 30, 40];
-export const REPS = 4;
-export const BLOCKS = 2;
+export const WIDTHS = [30, 45, 60];
+export const REPS = 3;
 export const MAX_ATTEMPTS = 3;
+export const PRACTICE = [
+	{ L: 500, W: 60 },
+	{ L: 800, W: 30 },
+];
 
 export const SHAPE_LABEL = { linear: 'Linear', circular: 'Circular' };
-export const DIRECTIONS = { linear: ['right', 'left'], circular: ['cw', 'ccw'] };
+export const DIRECTION = { linear: 'right', circular: 'cw' };
 
 export function radiusFor(L) {
 	return L / (2 * Math.PI);
@@ -40,30 +42,19 @@ export function conditions() {
 	return out;
 }
 
-/** The blocks of a session: practice, then BLOCKS main blocks. */
+/** The blocks of a session: practice, then the trials. */
 export function buildPlan(rng = Math.random) {
-	const conds = conditions();
-	const blocks = [
-		{
-			name: 'Practice',
-			practice: true,
-			trials: shuffle(
-				conds.map((c) => ({ ...c, direction: DIRECTIONS[c.shape][Math.floor(rng() * 2)] })),
-				rng,
-			),
-		},
-	];
-	for (let b = 1; b <= BLOCKS; b++) {
-		const trials = [];
-		for (const c of conds) {
-			for (let r = 0; r < REPS; r++) trials.push({ ...c, direction: DIRECTIONS[c.shape][r % 2] });
-		}
-		blocks.push({ name: `Block ${b} of ${BLOCKS}`, practice: false, trials: shuffle(trials, rng) });
-	}
-	return blocks.map((block, i) => ({
+	const spec = (shape, c) => ({ shape, L: c.L, W: c.W, ID: c.L / c.W, direction: DIRECTION[shape] });
+	const practice = PRACTICE.flatMap((c) => SHAPES.map((shape) => spec(shape, c)));
+	const trials = [];
+	for (const c of conditions()) for (let r = 0; r < REPS; r++) trials.push(spec(c.shape, c));
+	return [
+		{ name: 'Practice', practice: true, trials: practice },
+		{ name: 'Trials', practice: false, trials: shuffle(trials, rng) },
+	].map((block, i) => ({
 		...block,
 		number: i,
-		queue: block.trials.map((spec) => ({ spec, attempt: 1 })),
+		queue: block.trials.map((s) => ({ spec: s, attempt: 1 })),
 	}));
 }
 
@@ -81,7 +72,7 @@ export function requeue(block, index, rng = Math.random) {
 
 export function makeTunnel(spec, cx, cy) {
 	if (spec.shape === 'linear') {
-		return straightTunnel({ length: spec.L, width: spec.W, angle: spec.direction === 'right' ? 0 : 180, cx, cy });
+		return straightTunnel({ length: spec.L, width: spec.W, angle: spec.direction === 'left' ? 180 : 0, cx, cy });
 	}
-	return circularTunnel({ radius: radiusFor(spec.L), width: spec.W, clockwise: spec.direction === 'cw', cx, cy });
+	return circularTunnel({ radius: radiusFor(spec.L), width: spec.W, clockwise: spec.direction !== 'ccw', cx, cy });
 }

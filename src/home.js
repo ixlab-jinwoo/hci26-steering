@@ -44,22 +44,15 @@ export function home(root) {
 					href: '#/a1',
 					kicker: 'Assignment 1 · in-class team activity',
 					title: 'Fitts’ law vs. crossing',
-					text: 'Point at targets and cross goals of the same index of difficulty. Compare movement time, throughput and velocity profiles.',
-					meta: 'About 4 minutes per person · mouse or touchpad',
+					text: 'Point at targets and cross goals of the same index of difficulty. One laptop per team: every member takes a turn, and the team results build up on the laptop.',
+					meta: 'About 4 minutes per person · external mouse',
 				}),
 				card({
 					href: '#/a2',
 					kicker: 'Assignment 2 · individual homework',
 					title: 'Linear vs. circular steering',
-					text: 'Steer through straight and circular tunnels of the same index of difficulty. Compare movement time, throughput and speed profiles.',
-					meta: 'About 12 minutes · mouse or stylus',
-				}),
-				card({
-					href: '#/merge',
-					kicker: 'Teams and instructors',
-					title: 'Merge results',
-					text: 'Drop the CSV files of a team or a whole class to see everyone’s results together.',
-					meta: 'CSV files exported from Assignment 1 or 2',
+					text: 'Steer through straight and circular tunnels of the same index of difficulty. Run your participants on your laptop, download each one’s CSV file and merge the files.',
+					meta: 'About 4 minutes per person · mouse or stylus',
 				}),
 			),
 			h(
@@ -69,12 +62,13 @@ export function home(root) {
 				h(
 					'ul',
 					{},
-					h('li', {}, 'Your data stays in this browser until you export it. Nothing is uploaded.'),
+					h('li', {}, 'Data stays in this browser until you download it as CSV. Nothing is uploaded.'),
 					h('li', {}, 'Use Chrome, Edge, Firefox or Safari on a laptop or desktop, with the browser zoom at 100 %.'),
 					h(
 						'li',
 						{},
-						'If you stop in the middle, open this file again in the same browser to continue where you left off.',
+						'Finished participants are kept in this browser, and an interrupted run can be continued: open the page again in the same browser. ' +
+							'Do not use a private window, which forgets everything when it is closed.',
 					),
 					hosted
 						? h(

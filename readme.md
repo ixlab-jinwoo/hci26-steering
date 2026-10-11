@@ -4,11 +4,14 @@ In-browser experiments for the HCI 2026 course, built as **one self-contained HT
 `hci26-steering.html`, open it with a double-click, run an experiment and export their data as CSV. Nothing is
 uploaded; no server or network is needed.
 
-| Part         | Format                 | What students compare                                           |
-| ------------ | ---------------------- | --------------------------------------------------------------- |
-| Assignment 1 | in-class team activity | Fitts' law (pointing) vs. crossing at equal index of difficulty |
-| Assignment 2 | individual homework    | linear vs. circular steering at equal index of difficulty       |
-| Merge        | teams and instructor   | results of many exported CSV files together                     |
+| Part         | Format                                    | What students compare                                           |
+| ------------ | ----------------------------------------- | --------------------------------------------------------------- |
+| Assignment 1 | in-class team activity, one laptop a team | Fitts' law (pointing) vs. crossing at equal index of difficulty |
+| Assignment 2 | individual homework with participants     | linear vs. circular steering at equal index of difficulty       |
+
+Both assignments run several participants on one laptop, one after the other. Every finished participant stays in the
+participant list of that browser (kept as the CSV text of their download, so what is shown is what is exported), with
+their results, CSV download and a delete button; an interrupted run can be continued after a reload.
 
 ## Getting the file
 
@@ -27,7 +30,13 @@ A 1D reciprocal task (as in Fitts 1954) with two techniques at the same index of
 
 Design: A ∈ {240, 480} px × W ∈ {15, 30, 60} px (ID 2.3–5.0 bits) × 2 techniques = 12 sequences in random order, after
 one practice sequence per technique. Each sequence has 10 timed movements; the first activation only starts the clock.
-Misses are counted and the sequence goes on. Mouse, touchpad and pen are allowed; the device is recorded.
+Misses are counted and the sequence goes on. External mouse only: pen and touch input is ignored, and a touchpad has to
+be ruled out when the participant is added (browsers report it as a mouse).
+
+One laptop per team: the team members take turns as participants (team and name are asked for each participant). The
+participant list shows everyone's throughput, slopes and errors, and the **team results** below it analyse all
+participants on the laptop together. The team CSV (all movement rows) and a one-row-per-participant summary can be
+downloaded.
 
 Analysis per participant and condition (ISO 9241-9, Soukoreff & MacKenzie 2004): mean MT, effective width We = 4.133 ×
 SD of the activation points, IDe = log₂(Ae/We + 1), throughput TP = IDe / MT; per technique the fit MT = a + b·ID and the
@@ -42,12 +51,15 @@ Steering through tunnels (Accot & Zhai 1997): press in the green start zone, kee
 screen) and steer to the finish line; leaving the tunnel or letting go fails the trial, which is then repeated later in
 the block (up to 3 attempts). Both shapes have the same index of difficulty ID = L / W:
 
-- **Linear**: a straight tunnel of length L, left to right or right to left.
-- **Circular**: a full circle of circumference L (radius L / 2π), clockwise or counter-clockwise.
+- **Linear**: a straight tunnel of length L, left to right.
+- **Circular**: a full circle of circumference L (radius L / 2π), clockwise.
 
-Design: L ∈ {500, 800} px × W ∈ {20, 30, 40} px (ID 12.5–40) × 2 shapes; 12 practice trials, then 2 blocks of 48 trials
-(4 per condition, directions balanced) in random order; about 12 minutes. The session is saved after every trial, so a
-reload continues where it stopped.
+Design: L ∈ {500, 800} px × W ∈ {30, 45, 60} px (ID 8.3–26.7) × 2 shapes; 4 practice trials (both shapes, the widest and
+the narrowest tunnel), then one block of 36 trials (3 per condition) in random order; about 4 minutes per participant.
+The session is saved after every trial, so a reload continues where it stopped.
+
+The student runs the test with their participants on their own laptop and downloads each participant's CSV file; the
+merge view (below) puts the files together.
 
 Input: mouse or stylus only. Finger touches are ignored; a touchpad has to be ruled out by the student (browsers report
 it as a mouse); a mismatch between the chosen device and the actual pointer type is pointed out once. The window has to
@@ -58,12 +70,14 @@ fit MT = a + b·ID and IP = 1000/b; speed along the path in 20 pieces (`s01`–`
 towards the centre of the circle. Figures: MT vs. ID, throughput vs. ID, speed profiles per width, error rate, path
 length vs. width; in the merge view also each participant's slope b for both shapes.
 
-## Merge view
+## Merge view (Assignment 2)
 
-Drop the CSV files of a team or a class. Files are recognised by their `assignment` column; a participant session that
-is loaded twice is skipped, and mixed app versions are flagged. Each participant is analysed on their own first; tables
-and figures show the mean over participants with 95 % confidence intervals (Student t), plus paired comparisons
-between the two conditions. The merged rows and a one-row-per-participant summary can be downloaded as CSV.
+Reached from the Assignment 2 page (`#/a2/merge`). Drop the participants' CSV files, from this laptop or others, and/or
+add the participants stored on this laptop with one click. Files are recognised by their `assignment` column; a
+participant session that is loaded twice is skipped, and mixed app versions are flagged. Each participant is analysed
+on their own first; tables and figures show the mean over participants with 95 % confidence intervals (Student t),
+plus paired comparisons between the two shapes. The merged rows and a one-row-per-participant summary can be
+downloaded as CSV. The team results of Assignment 1 use the same group analysis.
 
 ## Development
 
@@ -79,13 +93,13 @@ Open `dist/hci26-steering.html` directly in a browser; no web server is needed.
 ```
 src/index.html        page template (CSS and JS are inlined by the build)
 src/styles.css
-src/main.js           hash router: #/, #/a1, #/a2, #/merge
+src/main.js           hash router: #/, #/a1, #/a2, #/a2/merge
 src/home.js           start page
 src/a1/               Assignment 1: design, reciprocal pointing/crossing engine, analysis, views
-src/a2/               Assignment 2: design, tunnel stage, analysis, views
+src/a2/               Assignment 2: design, tunnel stage, analysis, views, merge settings
 src/merge/            merge view
 src/core/             shared code: tunnel geometry, steering trial engine, statistics,
-                      CSV, storage, charts, version
+                      CSV, storage and participant list, charts, version
 scripts/build.mjs     esbuild bundle → single HTML file
 test/                 unit tests
 ```

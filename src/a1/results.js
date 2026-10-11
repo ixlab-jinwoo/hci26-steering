@@ -1,6 +1,6 @@
 /**
  * Assignment 1 figures and tables, for one participant (results screen) and
- * for a group (merge view).
+ * for the team (all participants on this laptop).
  */
 
 import { h } from '../core/dom.js';
@@ -226,20 +226,20 @@ export function renderGroup(container, group) {
 	});
 }
 
-/** Participant table of a group. */
-export function participantTable(group) {
+/** Participant table of a group; `actions(p)` adds a column of buttons. */
+export function participantTable(group, actions = null) {
 	const v = (p, t, f) => (p.techniques[t] ? f(p.techniques[t]) : '–');
 	return table(
 		[
-			{ label: 'Team', value: (p) => p.team || '–' },
 			{ label: 'Participant', value: (p) => p.participant || '–' },
-			{ label: 'Device', value: (p) => p.device || '–' },
+			{ label: 'Team', value: (p) => p.team || '–' },
 			{ label: 'TP pointing', value: (p) => v(p, 'pointing', (t) => numOrDash(t.tp, fmt.two)) },
 			{ label: 'TP crossing', value: (p) => v(p, 'crossing', (t) => numOrDash(t.tp, fmt.two)) },
 			{ label: 'b pointing', value: (p) => v(p, 'pointing', (t) => fmtFit(t.fit, 'b', fmt.int)) },
 			{ label: 'b crossing', value: (p) => v(p, 'crossing', (t) => fmtFit(t.fit, 'b', fmt.int)) },
 			{ label: 'Errors pointing', value: (p) => v(p, 'pointing', (t) => fmt.pct(t.errorRate)) },
 			{ label: 'Errors crossing', value: (p) => v(p, 'crossing', (t) => fmt.pct(t.errorRate)) },
+			...(actions ? [{ label: '', value: actions }] : []),
 		],
 		group.participants,
 	);

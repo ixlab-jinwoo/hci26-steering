@@ -1,34 +1,71 @@
 /**
- * Assignment 2 screens: setup → run → results. Mouse or stylus only:
- * finger touches are ignored, and a mismatch between the chosen device and
- * the actual input is pointed out once. The session is saved after every
- * trial, so a reload continues with the next one.
+ * Assignment 2 screens. The student runs the test with their participants
+ * on their own laptop, one after the other:
+ *
+ *   participants → new participant → run → results
+ *
+ * Each participant's data is downloaded as a CSV file; the merge view
+ * (#/a2/merge) combines the files. Mouse or stylus only: finger touches are
+ * ignored, and a mismatch between the chosen device and the actual input is
+ * pointed out once. A running session is saved after every trial, so a
+ * reload can continue it.
  */
 
 import { h, download, slug, dateStamp, onResize } from '../core/dom.js';
 import { pageHeader } from '../home.js';
 import { environment, newSessionId } from '../core/device.js';
 import { VERSION, versionLabel } from '../core/version.js';
-import { loadSession, saveSession, clearSession } from '../core/session.js';
+import {
+	loadSession,
+	saveSession,
+	clearSession,
+	loadParticipants,
+	finishSession,
+	removeParticipant,
+	clearParticipants,
+} from '../core/session.js';
 import { toCSV } from '../core/csv.js';
 import { fmt } from '../core/chart.js';
-import { steps, choices } from '../core/ui.js';
+import { steps, choices, rowActions } from '../core/ui.js';
 import { SteeringTrial } from '../core/steering-trial.js';
-import { buildPlan, makeTunnel, requeue, radiusFor, SHAPE_LABEL, REPS, BLOCKS } from './design.js';
+import {
+	buildPlan,
+	conditions,
+	makeTunnel,
+	requeue,
+	radiusFor,
+	SHAPE_LABEL,
+	LENGTHS,
+	WIDTHS,
+	REPS,
+	PRACTICE,
+	SHAPES,
+} from './design.js';
 import { A2_SCHEMA, SPEED_KEYS } from './schema.js';
-import { speedProfile, offsets, summarizeSession } from './analysis.js';
+import { speedProfile, offsets, summarizeSession, summarizeGroup } from './analysis.js';
 import { TunnelStage, STAGE_W, STAGE_H, MIN_ZONE } from './stage.js';
-import { renderIndividual, SHAPE_COLOR } from './results.js';
+import { renderIndividual, participantTable, SHAPE_COLOR } from './results.js';
 
 const NAME = 'a2';
 const TITLE = 'Assignment 2 · linear vs. circular steering';
-const STEPS = ['Setup', 'Run', 'Results'];
+const STEPS = ['Participant', 'Test', 'Results'];
 const NEXT_DELAY = 500;
 const MIN_W = STAGE_W + 40;
 const MIN_H = STAGE_H + 220;
 
 const DEVICE_LABEL = { mouse: 'a mouse', stylus: 'a stylus' };
 const POINTER_DEVICE = { mouse: 'mouse', pen: 'stylus' };
+
+/** The fields of a session kept in the participant list. */
+const infoOf = (session) => ({
+	id: session.id,
+	participant: session.participant,
+	device: session.device,
+	hand: session.hand,
+});
+
+const csvName = (person) => `A2_${slug(person.participant)}_${dateStamp()}.csv`;
+const list = (xs) => xs.slice(0, -1).join(', ') + ' or ' + xs[xs.length - 1];
 
 export function a2View(root) {
 	let cleanup = null;
@@ -40,14 +77,139 @@ export function a2View(root) {
 		cleanup = screen(...args) || null;
 	}
 
-	const existing = loadSession(NAME);
-	if (existing && existing.finished) show(resultsScreen, existing);
-	else if (existing) show(resumeScreen, existing);
-	else show(setupScreen);
+	// Older versions kept a finished session as the running one.
+	const old = loadSession(NAME);
+	if (old && old.finished) finishSession(NAME, infoOf(old), old.rows, A2_SCHEMA);
 
-	// ------------------------------------------------------------------ setup
+	show(participantsScreen);
 
-	function setupScreen() {
+	// ------------------------------------------------------------ participants
+
+	function participantsScreen() {
+		const pending = loadSession(NAME);
+		const people = loadParticipants(NAME, A2_SCHEMA);
+		const byId = new Map(people.map((p) => [p.id, p]));
+		const group = summarizeGroup(people.flatMap((p) => p.rows));
+
+		const actions = (p) => {
+			const person = byId.get(p.session);
+			return rowActions([
+				{ label: 'Results', onclick: () => show(resultsScreen, person) },
+				{ label: 'CSV', onclick: () => download(csvName(person), 'text/csv', toCSV(person.rows, A2_SCHEMA)) },
+				{
+					label: 'Delete',
+					danger: true,
+					onclick: () => {
+						if (!window.confirm(`Delete ${person.participant}? Their data is removed from this laptop.`)) return;
+						removeParticipant(NAME, person.id);
+						show(participantsScreen);
+					},
+				},
+			]);
+		};
+
+		root.append(
+			pageHeader(TITLE),
+			h(
+				'main',
+				{ class: 'wrap' },
+				h('h1', {}, 'Linear vs. circular steering'),
+				h(
+					'p',
+					{ class: 'lead' },
+					'Run the test with your participants on this laptop, one after the other. ' +
+						'Download each participant’s CSV file, then merge the files to see all participants together.',
+				),
+				pending
+					? h(
+							'div',
+							{ class: 'notice warn' },
+							h(
+								'p',
+								{ style: { marginTop: 0 } },
+								`${pending.participant} has not finished: ${pending.rows.length} attempts done.`,
+							),
+							h(
+								'div',
+								{ class: 'btn-row' },
+								h('button', { class: 'btn primary', onclick: () => show(runScreen, pending) }, 'Continue'),
+								h(
+									'button',
+									{
+										class: 'btn',
+										onclick: () => {
+											if (!window.confirm(`Discard the unfinished run of ${pending.participant}?`)) return;
+											clearSession(NAME);
+											show(participantsScreen);
+										},
+									},
+									'Discard',
+								),
+							),
+						)
+					: null,
+				h(
+					'section',
+					{ class: 'card' },
+					h('h2', { style: { marginTop: 0 } }, `Participants on this laptop (${people.length})`),
+					people.length
+						? participantTable(group, actions)
+						: h('p', { class: 'muted' }, 'Nobody yet: add the first participant.'),
+					h(
+						'div',
+						{ class: 'btn-row', style: { marginTop: '12px' } },
+						h(
+							'button',
+							{ class: 'btn primary', disabled: Boolean(pending), onclick: () => show(participantScreen) },
+							'Add participant',
+						),
+						pending ? h('span', { class: 'muted' }, 'Finish or discard the unfinished run first.') : null,
+					),
+				),
+				h(
+					'section',
+					{ class: 'card', style: { marginTop: '16px' } },
+					h('h2', { style: { marginTop: 0 } }, 'All participants together'),
+					h(
+						'p',
+						{},
+						'Merge the CSV files of your participants, from this laptop or from others, to see the group results: ' +
+							'movement time and throughput per shape, speed profiles and each participant’s steering slope.',
+					),
+					h('a', { class: 'btn', href: '#/a2/merge' }, 'Merge participant files'),
+				),
+				h(
+					'footer',
+					{ class: 'footer btn-row' },
+					`Version ${versionLabel()}`,
+					people.length
+						? h(
+								'button',
+								{
+									class: 'btn small danger',
+									onclick: () => {
+										if (
+											!window.confirm(
+												`Delete all ${people.length} participants from this laptop? Download their CSV files first.`,
+											)
+										)
+											return;
+										clearParticipants(NAME);
+										show(participantsScreen);
+									},
+								},
+								'Delete all participants',
+							)
+						: null,
+				),
+			),
+		);
+	}
+
+	// ------------------------------------------------------------ new participant
+
+	function participantScreen() {
+		const people = loadParticipants(NAME, A2_SCHEMA);
 		const participant = h('input', { type: 'text', id: 'a2-participant', autocomplete: 'off' });
 		const device = choices('a2-device', [
 			{ value: 'mouse', label: 'Mouse' },
@@ -62,7 +224,7 @@ export function a2View(root) {
 			'label',
 			{ class: 'check', for: 'a2-no-touchpad', hidden: true },
 			noTouchpad,
-			'I am using an external mouse, not a touchpad.',
+			'An external mouse is used, not the touchpad.',
 		);
 		device.el.addEventListener('change', () => (mouseCheck.hidden = device.value !== 'mouse'));
 		const error = h('p', { class: 'error-text', role: 'alert' });
@@ -71,7 +233,7 @@ export function a2View(root) {
 			const ok = window.innerWidth >= MIN_W && window.innerHeight >= MIN_H;
 			sizeNote.hidden = ok;
 			sizeNote.textContent =
-				`Your browser window is ${window.innerWidth} × ${window.innerHeight} pixels; the test needs at least ` +
+				`The browser window is ${window.innerWidth} × ${window.innerHeight} pixels; the test needs at least ` +
 				`${MIN_W} × ${MIN_H}. Maximise the window, or zoom out (Ctrl or ⌘ and −).`;
 			return ok;
 		};
@@ -84,22 +246,25 @@ export function a2View(root) {
 				class: 'form',
 				onsubmit: (e) => {
 					e.preventDefault();
-					const problem = !participant.value.trim()
-						? 'Enter your student ID.'
-						: !device.value
-							? 'Choose your input device.'
-							: device.value === 'mouse' && !noTouchpad.checked
-								? 'This assignment needs an external mouse or a stylus. Touchpads are not allowed.'
-								: !hand.value
-									? 'Choose the hand you use.'
-									: !checkSize()
-										? 'Make your browser window larger first.'
-										: '';
+					const name = participant.value.trim();
+					const problem = !name
+						? 'Enter the participant ID.'
+						: people.some((p) => p.participant === name)
+							? `There is already a participant ${name} on this laptop. Use another ID.`
+							: !device.value
+								? 'Choose the input device.'
+								: device.value === 'mouse' && !noTouchpad.checked
+									? 'This assignment needs an external mouse or a stylus. Touchpads are not allowed.'
+									: !hand.value
+										? 'Choose the hand the participant steers with.'
+										: !checkSize()
+											? 'Make the browser window larger first.'
+											: '';
 					error.textContent = problem;
 					if (problem) return;
 					const session = {
 						id: newSessionId(),
-						participant: participant.value.trim(),
+						participant: name,
 						device: device.value,
 						hand: hand.value,
 						env: environment(),
@@ -109,26 +274,31 @@ export function a2View(root) {
 						rows: [],
 						started: false,
 						mismatchNoted: false,
-						finished: false,
 					};
 					saveSession(NAME, session);
 					show(runScreen, session);
 				},
 			},
-			h('div', { class: 'field' }, h('label', { for: 'a2-participant' }, 'Student ID'), participant),
+			h('div', { class: 'field' }, h('label', { for: 'a2-participant' }, 'Participant ID'), participant),
 			h('div', { class: 'field' }, h('span', { class: 'label' }, 'Input device'), device.el, mouseCheck),
-			h('div', { class: 'field' }, h('span', { class: 'label' }, 'Hand you steer with'), hand.el),
+			h('div', { class: 'field' }, h('span', { class: 'label' }, 'Hand used for steering'), hand.el),
 			error,
-			h('div', { class: 'btn-row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Start')),
+			h(
+				'div',
+				{ class: 'btn-row' },
+				h('button', { class: 'btn primary', type: 'submit' }, 'Start'),
+				h('button', { class: 'btn', type: 'button', onclick: () => show(participantsScreen) }, 'Cancel'),
+			),
 		);
 
+		const trials = conditions().length * REPS;
 		root.append(
 			pageHeader(TITLE),
 			h(
 				'main',
 				{ class: 'wrap' },
 				steps(STEPS, 0),
-				h('h1', {}, 'Linear vs. circular steering'),
+				h('h1', {}, 'New participant'),
 				h(
 					'p',
 					{ class: 'lead' },
@@ -157,20 +327,20 @@ export function a2View(root) {
 						h(
 							'li',
 							{},
-							`Straight tunnels have length L, circles have circumference L (L = 500 or 800 px); widths W are 20, 30 or 40 px. ` +
-								`Both shapes have the same index of difficulty ID = L / W.`,
+							`Straight tunnels have length L, circles have circumference L (L = ${list(LENGTHS)} px); ` +
+								`widths W are ${list(WIDTHS)} px. Both shapes have the same index of difficulty ID = L / W.`,
 						),
 						h(
 							'li',
 							{},
-							`12 practice trials, then ${BLOCKS} blocks of ${12 * REPS} trials in random order: about 12 minutes. ` +
-								'You can stop at any time; open the file again in the same browser to continue.',
+							`${PRACTICE.length * SHAPES.length} practice trials, then ${trials} trials in random order: about 4 minutes. ` +
+								'If you stop, open the file again in the same browser to continue.',
 						),
 						h('li', {}, 'Use a mouse or a stylus. Touchpads and fingers are not allowed: touches are ignored.'),
 					),
 				),
 				sizeNote,
-				h('h2', {}, 'About you'),
+				h('h2', {}, 'Participant'),
 				form,
 			),
 		);
@@ -178,44 +348,7 @@ export function a2View(root) {
 		return () => window.removeEventListener('resize', checkSize);
 	}
 
-	// ------------------------------------------------------------------ resume
-
-	function resumeScreen(session) {
-		const done = session.rows.length;
-		root.append(
-			pageHeader(TITLE),
-			h(
-				'main',
-				{ class: 'wrap' },
-				h('h1', {}, 'Continue where you stopped?'),
-				h(
-					'p',
-					{ class: 'lead' },
-					`${session.participant} (${session.device}) has done ${done} trials: ` +
-						`${session.blocks[session.block].name.toLowerCase()}, trial ${session.index + 1} of ${session.blocks[session.block].queue.length}.`,
-				),
-				h(
-					'div',
-					{ class: 'btn-row' },
-					h('button', { class: 'btn primary', onclick: () => show(runScreen, session) }, 'Continue'),
-					h(
-						'button',
-						{
-							class: 'btn',
-							onclick: () => {
-								if (!window.confirm('Discard this run and start again?')) return;
-								clearSession(NAME);
-								show(setupScreen);
-							},
-						},
-						'Start again',
-					),
-				),
-			),
-		);
-	}
-
-	// ------------------------------------------------------------------ run
+	// ------------------------------------------------------------ run
 
 	function runScreen(session) {
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -234,7 +367,7 @@ export function a2View(root) {
 			h('div', { class: 'progress' }, progressFill),
 			h('div', { class: 'stage-box' }, svg, overlay),
 			status,
-			h('div', { class: 'run-help' }, 'Esc pauses. Your progress is saved after every trial.'),
+			h('div', { class: 'run-help' }, `${session.participant} · Esc pauses. Progress is saved after every trial.`),
 		);
 		root.append(run);
 
@@ -253,7 +386,7 @@ export function a2View(root) {
 			const total = session.blocks.reduce((a, b) => a + b.queue.length, 0);
 			const done = session.blocks.slice(0, session.block).reduce((a, b) => a + b.queue.length, 0) + session.index;
 			progressFill.style.width = `${(100 * done) / total}%`;
-			counter.textContent = `${block().name} · trial ${Math.min(session.index + 1, block().queue.length)} of ${block().queue.length}`;
+			counter.textContent = `${block().name} · ${Math.min(session.index + 1, block().queue.length)} of ${block().queue.length}`;
 		}
 
 		function showOverlay(...children) {
@@ -277,7 +410,7 @@ export function a2View(root) {
 					'p',
 					{},
 					b.practice
-						? 'One trial of each tunnel, to get used to the task. Practice trials are not analysed.'
+						? `${b.queue.length} trials to get used to the task: both shapes, a wide and a narrow tunnel. Practice trials are not analysed.`
 						: `${b.queue.length} trials in random order. Fast, but stay inside the walls.`,
 				),
 				h(
@@ -301,13 +434,16 @@ export function a2View(root) {
 				session.block++;
 				session.index = 0;
 				if (session.block >= session.blocks.length) {
-					session.finished = true;
-					saveSession(NAME, session);
-					show(resultsScreen, session);
+					const person = finishSession(NAME, infoOf(session), session.rows, A2_SCHEMA);
+					show(resultsScreen, person || { ...infoOf(session), rows: session.rows }, { next: true, unsaved: !person });
 					return;
 				}
 				saveSession(NAME, session);
-				blockIntro('Block finished. Take a short break if you like.');
+				blockIntro(
+					session.blocks[session.block - 1].practice
+						? 'Practice finished.'
+						: 'Block finished. Take a short break if you like.',
+				);
 				return;
 			}
 			updateProgress();
@@ -362,7 +498,7 @@ export function a2View(root) {
 							class: 'btn',
 							onclick: () => {
 								clearSession(NAME);
-								show(setupScreen);
+								show(participantScreen);
 							},
 						},
 						'Start again',
@@ -526,7 +662,7 @@ export function a2View(root) {
 		svg.addEventListener('pointercancel', onUp);
 		run.addEventListener('contextmenu', noMenu);
 		window.addEventListener('keydown', onKey);
-		blockIntro(session.started ? 'Welcome back.' : '');
+		blockIntro(session.started ? `Welcome back, ${session.participant}.` : '');
 
 		return () => {
 			clearTimeout(pending);
@@ -534,61 +670,51 @@ export function a2View(root) {
 		};
 	}
 
-	// ------------------------------------------------------------------ results
+	// ------------------------------------------------------------ results
 
-	function resultsScreen(session) {
-		const summary = summarizeSession(session.rows);
-		const fileName = `A2_${slug(session.participant)}_${dateStamp()}.csv`;
+	/**
+	 * Results of one participant. `next`: just finished, so the next
+	 * participant comes first; `unsaved`: the browser could not store them.
+	 */
+	function resultsScreen(person, { next = false, unsaved = false } = {}) {
+		const summary = summarizeSession(person.rows);
 		const body = h('div');
+		const nextButton = h(
+			'button',
+			{ class: 'btn' + (next ? ' primary' : ''), onclick: () => show(participantScreen) },
+			'Next participant',
+		);
 		root.append(
 			pageHeader(TITLE),
 			h(
 				'main',
 				{ class: 'wrap' },
-				steps(STEPS, 2),
-				h('h1', {}, 'Your results'),
+				next ? steps(STEPS, 2) : null,
+				h('h1', {}, `Results of ${person.participant}`),
 				h(
 					'p',
 					{ class: 'lead' },
-					`${session.participant} · ${session.device} · ${session.hand} hand · ${session.rows.length} attempts`,
+					`${person.device} · ${person.hand} hand · ${person.rows.filter((r) => !r.practice).length} attempts`,
 				),
+				unsaved
+					? h(
+							'p',
+							{ class: 'notice warn' },
+							'This browser could not store the results. Download the CSV file now: the results are lost when you leave this page.',
+						)
+					: null,
 				h(
-					'section',
-					{ class: 'card' },
-					h('h2', { style: { marginTop: 0 } }, 'Hand in your data'),
+					'div',
+					{ class: 'btn-row' },
+					nextButton,
+					h('button', { class: 'btn', onclick: () => show(participantsScreen) }, 'All participants'),
 					h(
-						'p',
-						{},
-						'Download your CSV file and submit it with your report. Your instructor merges everyone’s files to compare the class.',
-					),
-					h(
-						'div',
-						{ class: 'btn-row' },
-						h(
-							'button',
-							{
-								class: 'btn primary',
-								onclick: () => download(fileName, 'text/csv', toCSV(session.rows, A2_SCHEMA)),
-							},
-							'Download CSV',
-						),
-						h(
-							'button',
-							{
-								class: 'btn',
-								onclick: () => {
-									if (
-										!window.confirm(
-											'Start a new run? These results are removed from this browser; download the CSV first.',
-										)
-									)
-										return;
-									clearSession(NAME);
-									show(setupScreen);
-								},
-							},
-							'New run',
-						),
+						'button',
+						{
+							class: 'btn' + (unsaved ? ' primary' : ''),
+							onclick: () => download(csvName(person), 'text/csv', toCSV(person.rows, A2_SCHEMA)),
+						},
+						'Download CSV',
 					),
 				),
 				body,
@@ -596,6 +722,7 @@ export function a2View(root) {
 			),
 		);
 		renderIndividual(body, summary);
+		if (next) nextButton.focus();
 		return onResize(() => {
 			body.replaceChildren();
 			renderIndividual(body, summary);
